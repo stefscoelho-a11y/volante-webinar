@@ -1,0 +1,92 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// tipoAgendamento: "fixo" | "recorrente" | "just_in_time" | "agendado"
+// (Enums nao sao suportados pelo conector SQLite, por isso String.
+// Validar o valor na camada de aplicacao com um union type TS.)
+model Webinar {
+  id                          String    @id @default(cuid())
+  titulo                      String
+  slug                        String    @unique
+  videoUrl                    String?   @map("video_url")
+  videoFilePath               String?   @map("video_file_path")
+  videoDurationSeconds        Int       @map("video_duration_seconds")
+  pitchTimestampSeconds       Int       @map("pitch_timestamp_seconds")
+  ctaTexto                    String    @map("cta_texto")
+  ctaLink                     String    @map("cta_link")
+  // Configuracao da oferta que aparece junto com o CTA - tudo opcional
+  ofertaNome                  String?   @map("oferta_nome")
+  ofertaTitulo                String?   @map("oferta_titulo")
+  ofertaImagemUrl             String?   @map("oferta_imagem_url")
+  ofertaDescricao             String?   @map("oferta_descricao")
+  precoOriginal               Float?    @map("preco_original")
+  precoOferta                 Float?    @map("preco_oferta")
+  // Minutos de contagem regressiva de urgencia a partir do momento que o CTA aparece
+  ctaCountdownMinutos         Int?      @map("cta_countdown_minutos")
+  // Segundo do video em que o CTA some (opcional - se nulo, fica ate o fim)
+  ctaDesaparecerSegundos      Int?      @map("cta_desaparecer_segundos")
+  // Meta/Facebook Pixel ID, injetado na pagina da sala quando configurado
+  metaPixelId                 String?   @map("meta_pixel_id")
+  // Se falso, o video sempre comeca do zero pra cada espectador (nao pula
+  // pro ponto do relogio real); o agendamento (aguardando/encerrado) continua
+  // valendo do mesmo jeito independente disso.
+  sincronizarVideoComHorario  Boolean   @default(true) @map("sincronizar_video_com_horario")
+  // Faixa da audiencia fake exibida na sala - se nulos, usa uma faixa padrao
+  audienciaFakeMin            Int?      @map("audiencia_fake_min")
+  audienciaFakeMax            Int?      @map("audiencia_fake_max")
+  tipoAgendamento             String    @default("fixo") @map("tipo_agendamento")
+  // JSON array de horarios "HH:mm", usado quando tipoAgendamento = "fixo"
+  horariosFixos               Json?     @map("horarios_fixos")
+  intervaloRecorrenciaMinutos Int?      @map("intervalo_recorrencia_minutos")
+  delayJustInTimeMinutos      Int?      @map("delay_just_in_time_minutos")
+  // Usado quando tipoAgendamento = "agendado"
+  agendadoDataHoraInicio      DateTime? @map("agendado_data_hora_inicio")
+  agendadoDataHoraFim         DateTime? @map("agendado_data_hora_fim")
+  // "nenhuma" | "diaria" | "semanal"
+  agendadoRepeticao           String?   @map("agendado_repeticao")
+  ativo                       Boolean   @default(true)
+  criadoEm                    DateTime  @default(now()) @map("criado_em")
+
+  chatMessages ChatMessage[]
+  leads        Lead[]
+
+  @@map("webinars")
+}
+
+// tipo: "mensagem" | "sistema"
+model ChatMessage {
+  id                String  @id @default(cuid())
+  webinarId         String  @map("webinar_id")
+  webinar           Webinar @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+  timestampSegundos Int     @map("timestamp_segundos")
+  nomeAutor         String  @map("nome_autor")
+  avatarUrl         String? @map("avatar_url")
+  texto             String
+  tipo              String  @default("mensagem")
+  ordem             Int     @default(0)
+
+  @@index([webinarId])
+  @@map("chat_messages")
+}
+
+model Lead {
+  id              String   @id @default(cuid())
+  webinarId       String   @map("webinar_id")
+  webinar         Webinar  @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+  nome            String
+  email           String
+  sessaoEscolhida DateTime @map("sessao_escolhida")
+  entrouEm        DateTime @default(now()) @map("entrou_em")
+
+  @@index([webinarId])
+  @@map("leads")
+}
