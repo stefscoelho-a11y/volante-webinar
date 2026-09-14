@@ -3,11 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { lerSegmentos } from "@/lib/legendas";
 import { Prisma } from "@/generated/prisma/client";
 import { REPETICOES_AGENDADO, TIPOS_AGENDAMENTO, type RepeticaoAgendado, type TipoAgendamento } from "@/lib/scheduling";
 import { parseFonteSala, parseHexColor, parseTemaSala, VISUAL_DEFAULTS } from "@/lib/webinarVisual";
 import { SLUGS_RESERVADOS } from "@/lib/linksAcesso";
+import { dadosNovoWebinar, lerJsonExportado, pacoteDoWebinar, type PacoteWebinar } from "@/lib/webinarConfig";
+
+const MAX_ARQUIVO_IMPORTACAO_BYTES = 10 * 1024 * 1024;
 
 function slugify(value: string): string {
   return value
@@ -244,18 +246,21 @@ export async function updateWebinar(id: string, formData: FormData) {
   redirect(`/admin/webinars/${id}/editar`);
 }
 
-async function gerarSlugUnico(base: string): Promise<string> {
-  let candidato = `${base}-copia`;
-  let sufixo = 2;
-  // Confere se ja existe e vai incrementando (-copia, -copia-2, -copia-3...)
-  // ate achar um slug livre.
-  while (await prisma.webinar.findUnique({ where: { slug: candidato } })) {
-    candidato = `${base}-copia-${sufixo}`;
-    sufixo += 1;
+/**
+ * Primeiro slug livre: a propria base (se `tentarBase`), depois -sufixo,
+ * -sufixo-2, -sufixo-3...
+ */
+async function gerarSlugUnico(base: string, sufixo: string, tentarBase = false): Promise<string> {
+  let candidato = tentarBase && !SLUGS_RESERVADOS.includes(base) ? base : `${base}-${sufixo}`;
+  let numero = 2;
+  while (await prisma.webinar.findUnique({ where: { slug: candidato }, select: { id: true } })) {
+    candidato = `${base}-${sufixo}-${numero}`;
+    numero += 1;
   }
   return candidato;
 }
 
+/** Copia todas as configuracoes, o roteiro do chat e a transcricao (nao copia cadastros). */
 export async function duplicateWebinar(id: string) {
   const original = await prisma.webinar.findUnique({
     where: { id },
@@ -263,73 +268,53 @@ export async function duplicateWebinar(id: string) {
   });
   if (!original) throw new Error("Webinario nao encontrado.");
 
-  const novoSlug = await gerarSlugUnico(original.slug);
-
   const copia = await prisma.webinar.create({
-    data: {
+    data: dadosNovoWebinar(pacoteDoWebinar(original), {
       titulo: `${original.titulo} (cópia)`,
-      slug: novoSlug,
-      videoUrl: original.videoUrl,
-      videoFilePath: original.videoFilePath,
-      videoDurationSeconds: original.videoDurationSeconds,
-      pitchTimestampSeconds: original.pitchTimestampSeconds,
-      ctaTexto: original.ctaTexto,
-      ctaLink: original.ctaLink,
-      ctaDesaparecerSegundos: original.ctaDesaparecerSegundos,
-      ofertaNome: original.ofertaNome,
-      ofertaTitulo: original.ofertaTitulo,
-      ofertaImagemUrl: original.ofertaImagemUrl,
-      ofertaDescricao: original.ofertaDescricao,
-      precoOriginal: original.precoOriginal,
-      precoOferta: original.precoOferta,
-      ctaCountdownMinutos: original.ctaCountdownMinutos,
-      metaPixelId: original.metaPixelId,
-      sincronizarVideoComHorario: original.sincronizarVideoComHorario,
-      audienciaFakeMin: original.audienciaFakeMin,
-      audienciaFakeMax: original.audienciaFakeMax,
-      temaSala: original.temaSala,
-      corPrimaria: original.corPrimaria,
-      corFundo: original.corFundo,
-      corTexto: original.corTexto,
-      fonteSala: original.fonteSala,
-      tipoAgendamento: original.tipoAgendamento,
-      horariosFixos: original.horariosFixos ?? undefined,
-      intervaloRecorrenciaMinutos: original.intervaloRecorrenciaMinutos,
-      delayJustInTimeMinutos: original.delayJustInTimeMinutos,
-      agendadoDataHoraInicio: original.agendadoDataHoraInicio,
-      agendadoDataHoraFim: original.agendadoDataHoraFim,
-      agendadoRepeticao: original.agendadoRepeticao,
-      exigirCadastro: original.exigirCadastro,
-      justInTimeAtivo: original.justInTimeAtivo,
-      replayAtivo: original.replayAtivo,
-      replayLiberarEm: original.replayLiberarEm,
-      replayExpirarEm: original.replayExpirarEm,
-      replayDuracaoHoras: original.replayDuracaoHoras,
-      // A copia comeca inativa de proposito - evita publicar uma sessao
-      // agendada/recorrente duplicada sem revisar antes.
-      ativo: false,
-      transcricao: original.transcricao
-        ? {
-            create: {
-              segmentos: lerSegmentos(original.transcricao.segmentos),
-              formato: original.transcricao.formato,
-              nomeArquivo: original.transcricao.nomeArquivo,
-            },
-          }
-        : undefined,
-      chatMessages: {
-        create: original.chatMessages.map((mensagem) => ({
-          timestampSegundos: mensagem.timestampSegundos,
-          nomeAutor: mensagem.nomeAutor,
-          avatarUrl: mensagem.avatarUrl,
-          texto: mensagem.texto,
-          tipo: mensagem.tipo,
-          ordem: mensagem.ordem,
-        })),
-      },
-    },
+      slug: await gerarSlugUnico(original.slug, "copia"),
+    }),
   });
 
   revalidatePath("/admin/webinars");
   redirect(`/admin/webinars/${copia.id}/editar`);
+}
+
+/** Apaga o webinar e, em cascata, roteiro do chat, transcricao e cadastros. */
+export async function deleteWebinar(id: string) {
+  // deleteMany em vez de delete: um segundo clique nao estoura erro
+  await prisma.webinar.deleteMany({ where: { id } });
+  revalidatePath("/admin/webinars");
+  redirect("/admin/webinars");
+}
+
+export type EstadoImportacao = { erro: string } | null;
+
+/** Cria um webinar novo (inativo) a partir de um JSON exportado. */
+export async function importarWebinar(_estado: EstadoImportacao, formData: FormData): Promise<EstadoImportacao> {
+  const arquivo = formData.get("arquivo");
+  if (!(arquivo instanceof File) || arquivo.size === 0) {
+    return { erro: "Escolha um arquivo .json exportado do Volante." };
+  }
+  if (arquivo.size > MAX_ARQUIVO_IMPORTACAO_BYTES) {
+    return { erro: "Arquivo grande demais (máximo de 10 MB)." };
+  }
+
+  let pacote: PacoteWebinar;
+  try {
+    pacote = lerJsonExportado(JSON.parse(await arquivo.text()));
+  } catch (erro) {
+    if (erro instanceof SyntaxError) return { erro: "O arquivo não é um JSON válido." };
+    return { erro: erro instanceof Error ? erro.message : "Arquivo inválido." };
+  }
+
+  const base = slugify(pacote.slugOriginal || pacote.config.titulo) || "webinar";
+  const novo = await prisma.webinar.create({
+    data: dadosNovoWebinar(pacote, {
+      titulo: pacote.config.titulo,
+      slug: await gerarSlugUnico(base, "importado", true),
+    }),
+  });
+
+  revalidatePath("/admin/webinars");
+  redirect(`/admin/webinars/${novo.id}/editar`);
 }

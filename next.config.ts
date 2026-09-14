@@ -9,6 +9,17 @@ const nextConfig: NextConfig = {
       { source: "/w/:slug/:path+", destination: "/:slug/:path+", permanent: false },
     ];
   },
+  images: {
+    // Miniaturas dos videos do YouTube na listagem do admin
+    remotePatterns: [{ protocol: "https", hostname: "i.ytimg.com", pathname: "/vi/**" }],
+  },
+  experimental: {
+    serverActions: {
+      // Importar webinar em JSON: com transcricao o arquivo passa facil de 1 MB
+      // (limite padrao). Folga pro overhead do multipart acima dos 10 MB aceitos.
+      bodySizeLimit: "11mb",
+    },
+  },
 };
 
 export default nextConfig;
