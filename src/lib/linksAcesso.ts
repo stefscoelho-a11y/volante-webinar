@@ -23,6 +23,8 @@ export const ORIGENS_LEAD = {
   just_in_time: "Just in time",
   just_in_time_magic: "Just in time com magic link",
   replay: "Replay",
+  chat: "Chat da sala",
+  convidado: "Convidado no chat",
 } as const;
 export type OrigemLead = keyof typeof ORIGENS_LEAD;
 

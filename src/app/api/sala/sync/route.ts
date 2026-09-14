@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getLeadAtual } from "@/lib/leads";
-import type { ComentarioAoVivo } from "@/lib/chatAoVivo";
+import { getLeadAtual, participanteDoChat } from "@/lib/leads";
+import { ONLINE_ATE_SEGUNDOS, type ComentarioAoVivo } from "@/lib/chatAoVivo";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +16,7 @@ type CorpoSync = {
   sessao?: unknown;
   videoSegundos?: unknown;
   desde?: unknown;
+  saindo?: unknown;
 };
 
 /**
@@ -32,6 +33,15 @@ export async function POST(request: NextRequest) {
   if (!webinarId || !VISITANTE_VALIDO.test(visitanteId) || !sessao) {
     return NextResponse.json({ erro: "Requisição inválida." }, { status: 400 });
   }
+  // Aba fechada (sendBeacon no pagehide): sai da lista na hora
+  if (corpo?.saindo === true) {
+    await prisma.presenca.updateMany({
+      where: { webinarId, visitanteId },
+      data: { ultimoSinal: new Date(Date.now() - (ONLINE_ATE_SEGUNDOS + 1) * 1000) },
+    });
+    return new NextResponse(null, { status: 204 });
+  }
+
   const pagina = corpo?.pagina === "replay" ? "replay" : "sala";
   const videoSegundos = Math.max(0, Math.floor(Number(corpo?.videoSegundos) || 0));
   const desde = typeof corpo?.desde === "string" && !Number.isNaN(Date.parse(corpo.desde)) ? new Date(corpo.desde) : null;
@@ -71,7 +81,7 @@ export async function POST(request: NextRequest) {
     : [];
 
   return NextResponse.json(
-    { comentarios, participante: lead ? { nome: lead.nome } : null },
+    { comentarios, participante: participanteDoChat(lead) },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

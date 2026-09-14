@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { entrarNoChat, enviarComentario } from "@/app/[slug]/actions";
+import { entrarComoConvidado, entrarNoChat, enviarComentario } from "@/app/[slug]/actions";
 import {
   INTERVALO_SYNC_MS,
   INTERVALO_SYNC_OCULTO_MS,
   type ChatAoVivoConfig,
   type ComentarioAoVivo,
+  type ParticipanteChat,
 } from "@/lib/chatAoVivo";
 
 const CHAVE_VISITANTE = "vw_visitante";
@@ -32,7 +33,7 @@ function obterVisitanteId(): string {
  * desligado e o chat e so o roteiro.
  */
 export function useChatAoVivo(config: ChatAoVivoConfig | undefined, videoSegundos: number) {
-  const [participante, setParticipante] = useState(config?.participante ?? null);
+  const [participante, setParticipante] = useState<ParticipanteChat | null>(config?.participante ?? null);
   const [comentarios, setComentarios] = useState<ComentarioAoVivo[]>([]);
   const videoSegundosRef = useRef(videoSegundos);
 
@@ -70,7 +71,7 @@ export function useChatAoVivo(config: ChatAoVivoConfig | undefined, videoSegundo
         if (resposta.ok && !cancelado) {
           const dados = (await resposta.json()) as {
             comentarios: ComentarioAoVivo[];
-            participante: { nome: string } | null;
+            participante: ParticipanteChat | null;
           };
           adicionarComentarios(dados.comentarios);
           if (dados.participante) setParticipante(dados.participante);
@@ -85,18 +86,34 @@ export function useChatAoVivo(config: ChatAoVivoConfig | undefined, videoSegundo
       }
     }
 
+    // Aba fechada: avisa na hora, pra pessoa sair do "assistindo agora" sem esperar o sinal expirar
+    function avisarSaida() {
+      const corpo = JSON.stringify({ webinarId, visitanteId, pagina, sessao, saindo: true });
+      navigator.sendBeacon("/api/sala/sync", new Blob([corpo], { type: "application/json" }));
+    }
+
+    window.addEventListener("pagehide", avisarSaida);
     sincronizar();
     return () => {
       cancelado = true;
       window.clearTimeout(timeout);
+      window.removeEventListener("pagehide", avisarSaida);
     };
   }, [webinarId, pagina, sessao, adicionarComentarios]);
 
   async function entrar(formData: FormData): Promise<string | null> {
     if (!config) return "Chat indisponível.";
-    const resultado = await entrarNoChat(config.webinarId, config.pagina, formData);
+    const resultado = await entrarNoChat(config.webinarId, formData);
     if (!resultado.ok) return resultado.erro;
-    setParticipante({ nome: resultado.nome });
+    setParticipante(resultado.participante);
+    return null;
+  }
+
+  async function entrarSemDados(): Promise<string | null> {
+    if (!config) return "Chat indisponível.";
+    const resultado = await entrarComoConvidado(config.webinarId);
+    if (!resultado.ok) return resultado.erro;
+    setParticipante(resultado.participante);
     return null;
   }
 
@@ -112,7 +129,14 @@ export function useChatAoVivo(config: ChatAoVivoConfig | undefined, videoSegundo
     return null;
   }
 
-  return { habilitado: Boolean(config), participante, comentarios, entrar, comentar };
+  return {
+    habilitado: Boolean(config),
+    participante,
+    comentarios,
+    entrar,
+    entrarComoConvidado: entrarSemDados,
+    comentar,
+  };
 }
 
 export type ChatAoVivo = ReturnType<typeof useChatAoVivo>;

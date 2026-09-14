@@ -180,35 +180,64 @@ function CaixaComentario({ chat }: { chat: ChatAoVivo }) {
   const [enviando, setEnviando] = useState(false);
   const [identificando, setIdentificando] = useState(false);
 
-  if (!chat.participante) {
+  // Sem participante, ou convidado que pediu pra informar nome e WhatsApp
+  if (!chat.participante || identificando) {
     if (!identificando) {
       return (
-        <button
-          type="button"
-          onClick={() => setIdentificando(true)}
-          className="room-accent-bg h-9 w-full rounded-md text-sm font-semibold transition hover:opacity-90"
-        >
-          Participar do chat
-        </button>
+        <div className="space-y-1.5">
+          <button
+            type="button"
+            onClick={() => setIdentificando(true)}
+            className="room-accent-bg h-9 w-full rounded-md text-sm font-semibold transition hover:opacity-90"
+          >
+            Entrar com nome e WhatsApp
+          </button>
+          <button
+            type="button"
+            disabled={enviando}
+            onClick={async () => {
+              setEnviando(true);
+              setErro(await chat.entrarComoConvidado());
+              setEnviando(false);
+            }}
+            className="room-muted h-8 w-full rounded-md text-sm font-medium transition hover:opacity-80 disabled:opacity-60"
+          >
+            {enviando ? "Entrando..." : "Entrar como convidado"}
+          </button>
+          {erro && <p className="text-xs text-red-600">{erro}</p>}
+        </div>
       );
     }
 
     return (
       <form
-        action={async (formData) => {
+        // onSubmit em vez de action: form com action limpa os campos ao terminar,
+        // e quem errasse o WhatsApp teria que digitar o nome de novo
+        onSubmit={async (evento) => {
+          evento.preventDefault();
+          const formData = new FormData(evento.currentTarget);
           setEnviando(true);
-          setErro(await chat.entrar(formData));
+          const falha = await chat.entrar(formData);
           setEnviando(false);
+          setErro(falha);
+          if (!falha) setIdentificando(false);
         }}
         className="space-y-2"
       >
-        <p className="room-muted text-xs">Informe seus dados para comentar.</p>
-        <input name="nome" required maxLength={120} placeholder="Seu nome" aria-label="Seu nome" className={classeCampoChat} style={{ borderColor: "var(--room-border)" }} />
-        <input name="email" type="email" required maxLength={200} placeholder="Seu email" aria-label="Seu email" className={classeCampoChat} style={{ borderColor: "var(--room-border)" }} />
+        <p className="room-muted text-xs">Seu nome aparece no chat. O WhatsApp fica só com a equipe.</p>
+        <input name="nome" required maxLength={120} autoComplete="name" placeholder="Seu nome" aria-label="Seu nome" className={classeCampoChat} style={{ borderColor: "var(--room-border)" }} />
+        <input name="whatsapp" type="tel" inputMode="tel" required maxLength={20} autoComplete="tel" placeholder="WhatsApp com DDD" aria-label="WhatsApp com DDD" className={classeCampoChat} style={{ borderColor: "var(--room-border)" }} />
         {erro && <p className="text-xs text-red-600">{erro}</p>}
         <div className="flex gap-2">
-          <button type="button" onClick={() => setIdentificando(false)} className="room-muted h-9 px-3 text-sm">
-            Cancelar
+          <button
+            type="button"
+            onClick={() => {
+              setIdentificando(false);
+              setErro(null);
+            }}
+            className="room-muted h-9 px-3 text-sm"
+          >
+            Voltar
           </button>
           <button
             type="submit"
@@ -255,6 +284,15 @@ function CaixaComentario({ chat }: { chat: ChatAoVivo }) {
         </button>
       </div>
       {erro && <p className="mt-1 text-xs text-red-600">{erro}</p>}
+      {chat.participante.convidado && (
+        <button
+          type="button"
+          onClick={() => setIdentificando(true)}
+          className="room-muted mt-1.5 text-left text-xs underline underline-offset-2 hover:opacity-80"
+        >
+          Você está como {chat.participante.nome}. Informar nome e WhatsApp
+        </button>
+      )}
     </form>
   );
 }

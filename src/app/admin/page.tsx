@@ -34,7 +34,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const [totalWebinars, webinarsAtivos, leadsNoPeriodo] = await Promise.all([
     prisma.webinar.count(),
     prisma.webinar.count({ where: { ativo: true } }),
-    prisma.lead.count({ where: { entrouEm: { gte: from, lte: to } } }),
+    // Convidados do chat nao deixaram dados, entao nao contam como cadastro
+    prisma.lead.count({ where: { entrouEm: { gte: from, lte: to }, origem: { not: "convidado" } } }),
   ]);
 
   return (

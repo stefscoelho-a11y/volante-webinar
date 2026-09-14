@@ -3,8 +3,20 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { lerDadosParticipante } from "@/lib/linksAcesso";
-import { getLeadAtual, registrarEntrada, registrarLead, salvarCookieLead } from "@/lib/leads";
-import { MAX_COMENTARIO, type ComentarioAoVivo } from "@/lib/chatAoVivo";
+import {
+  getLeadAtual,
+  participanteDoChat,
+  registrarConvidado,
+  registrarEntrada,
+  registrarParticipanteChat,
+  salvarCookieLead,
+} from "@/lib/leads";
+import {
+  MAX_COMENTARIO,
+  normalizarWhatsapp,
+  type ComentarioAoVivo,
+  type ParticipanteChat,
+} from "@/lib/chatAoVivo";
 
 // Evita flood: no maximo um comentario a cada 2 segundos por participante
 const INTERVALO_MINIMO_COMENTARIO_MS = 2000;
@@ -34,23 +46,34 @@ export async function cadastrar(slug: string, via: string, formData: FormData) {
   redirect(destino);
 }
 
-export type ResultadoEntrarNoChat = { ok: true; nome: string } | { ok: false; erro: string };
+export type ResultadoEntrarNoChat = { ok: true; participante: ParticipanteChat } | { ok: false; erro: string };
 
-/** Identifica quem quer comentar sem sair da sala (vira cadastro, como o formulario de entrada). */
-export async function entrarNoChat(
-  webinarId: string,
-  pagina: string,
-  formData: FormData,
-): Promise<ResultadoEntrarNoChat> {
-  const webinar = await prisma.webinar.findUnique({ where: { id: webinarId }, select: { id: true, ativo: true } });
-  if (!webinar?.ativo) return { ok: false, erro: "Este webinário não está disponível." };
+async function webinarAtivo(webinarId: string): Promise<boolean> {
+  const webinar = await prisma.webinar.findUnique({ where: { id: webinarId }, select: { ativo: true } });
+  return Boolean(webinar?.ativo);
+}
 
-  const dados = lerDadosParticipante(camposDoFormulario(formData));
-  if (!dados?.nome) return { ok: false, erro: "Preencha seu nome e um email válido." };
+/** Entrada no chat com nome e WhatsApp, sem sair da sala. */
+export async function entrarNoChat(webinarId: string, formData: FormData): Promise<ResultadoEntrarNoChat> {
+  if (!(await webinarAtivo(webinarId))) return { ok: false, erro: "Este webinário não está disponível." };
 
-  const lead = await registrarLead(webinar.id, dados, pagina === "replay" ? "replay" : "principal");
+  const nome = String(formData.get("nome") ?? "").trim().slice(0, 120);
+  const whatsapp = normalizarWhatsapp(String(formData.get("whatsapp") ?? ""));
+  if (!nome) return { ok: false, erro: "Informe seu nome." };
+  if (!whatsapp) return { ok: false, erro: "Informe um WhatsApp válido, com DDD." };
+
+  const lead = await registrarParticipanteChat(webinarId, nome, whatsapp, await getLeadAtual(webinarId));
   await salvarCookieLead(lead);
-  return { ok: true, nome: lead.nome };
+  return { ok: true, participante: { nome: lead.nome, convidado: false } };
+}
+
+/** Entrada no chat sem informar dados. */
+export async function entrarComoConvidado(webinarId: string): Promise<ResultadoEntrarNoChat> {
+  if (!(await webinarAtivo(webinarId))) return { ok: false, erro: "Este webinário não está disponível." };
+
+  const lead = (await getLeadAtual(webinarId)) ?? (await registrarConvidado(webinarId));
+  await salvarCookieLead(lead);
+  return { ok: true, participante: participanteDoChat(lead)! };
 }
 
 export type ResultadoComentario = { ok: true; comentario: ComentarioAoVivo } | { ok: false; erro: string };

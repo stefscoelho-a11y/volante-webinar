@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import {
   CalendarClock,
   Eye,
@@ -12,7 +12,6 @@ import {
   Palette,
   PlayCircle,
   Plug,
-  Radio,
 } from "lucide-react";
 
 export type WebinarStepKey =
@@ -24,8 +23,7 @@ export type WebinarStepKey =
   | "integracoes"
   | "links"
   | "chat"
-  | "preview"
-  | "ao-vivo";
+  | "preview";
 
 type IconComponent = (props: { className?: string }) => ReactNode;
 
@@ -69,64 +67,53 @@ function buildStepsAsLinks(webinarId: string): StepDef[] {
     { key: "links", label: "Links", icon: IconLinks, href: `/admin/webinars/${webinarId}/links` },
     { key: "chat", label: "Chat Fake", icon: IconChat, href: `/admin/webinars/${webinarId}/chat` },
     { key: "preview", label: "Preview", icon: IconPreview, href: `/admin/webinars/${webinarId}/preview` },
-    { key: "ao-vivo", label: "Ao vivo", icon: IconAoVivo, href: `/admin/webinars/${webinarId}/ao-vivo` },
   ];
 }
+
+// Etapas que sao ferramentas (paginas proprias) e nao parte do formulario:
+// ficam depois de um separador.
+const FERRAMENTAS = new Set<WebinarStepKey>(["links", "chat", "preview"]);
 
 export function WebinarStepper(props: WebinarStepperProps) {
   const { activeKey } = props;
   const steps = props.steps ?? buildStepsAsLinks(props.webinarId);
-  const activeIndex = steps.findIndex((step) => step.key === activeKey);
 
   return (
-    <div className="mb-6 overflow-x-auto pb-1">
-      <div className="flex min-w-max items-center">
+    <nav aria-label="Etapas do webinário" className="mb-6 overflow-x-auto border-b border-gray-200">
+      <div className="flex min-w-max items-center gap-1">
         {steps.map((step, index) => {
           const isActive = step.key === activeKey;
-          const isDone = index < activeIndex;
           const Icon = step.icon;
-
-          const content = (
-            <div className="flex w-20 flex-col items-center gap-1.5 text-center sm:w-24">
-              <Icon
-                className={`h-5 w-5 ${isActive ? "text-emerald-600" : isDone ? "text-emerald-500" : "text-gray-400"}`}
-              />
-              <span className={`text-[11px] font-medium ${isActive ? "text-emerald-600" : "text-gray-500"}`}>
-                {step.label}
-              </span>
-              <span
-                className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold ${
-                  isActive
-                    ? "bg-emerald-600 text-white"
-                    : isDone
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "bg-gray-100 text-gray-400"
-                }`}
-              >
-                {index + 1}
-              </span>
-            </div>
+          const abreFerramentas = FERRAMENTAS.has(step.key) && (index === 0 || !FERRAMENTAS.has(steps[index - 1].key));
+          const classe = `-mb-px flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition ${
+            isActive
+              ? "border-emerald-600 text-emerald-700"
+              : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-800"
+          }`;
+          const conteudo = (
+            <>
+              <Icon className="h-4 w-4 shrink-0" />
+              {step.label}
+            </>
           );
 
           return (
-            <div key={step.key} className="flex items-center">
+            <Fragment key={step.key}>
+              {abreFerramentas && <span aria-hidden="true" className="mx-2 h-5 w-px shrink-0 bg-gray-200" />}
               {step.href ? (
-                <Link href={step.href} className="transition hover:opacity-75">
-                  {content}
+                <Link href={step.href} aria-current={isActive ? "page" : undefined} className={classe}>
+                  {conteudo}
                 </Link>
               ) : (
-                <button type="button" onClick={step.onClick} className="transition hover:opacity-75">
-                  {content}
+                <button type="button" onClick={step.onClick} aria-current={isActive ? "step" : undefined} className={classe}>
+                  {conteudo}
                 </button>
               )}
-              {index < steps.length - 1 && (
-                <div className={`mb-4 h-px w-6 shrink-0 sm:w-10 ${isDone ? "bg-emerald-300" : "bg-gray-200"}`} />
-              )}
-            </div>
+            </Fragment>
           );
         })}
       </div>
-    </div>
+    </nav>
   );
 }
 
@@ -140,4 +127,3 @@ export const IconIntegracoes = Plug;
 export const IconLinks = Link2;
 export const IconChat = MessageSquare;
 export const IconPreview = PlayCircle;
-export const IconAoVivo = Radio;

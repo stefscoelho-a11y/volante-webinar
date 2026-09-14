@@ -7,6 +7,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { REPETICOES_AGENDADO, TIPOS_AGENDAMENTO, type RepeticaoAgendado, type TipoAgendamento } from "@/lib/scheduling";
 import { parseFonteSala, parseHexColor, parseTemaSala, VISUAL_DEFAULTS } from "@/lib/webinarVisual";
 import { SLUGS_RESERVADOS } from "@/lib/linksAcesso";
+import { parseTempoHMS } from "@/lib/tempo";
 import { dadosNovoWebinar, lerJsonExportado, pacoteDoWebinar, type PacoteWebinar } from "@/lib/webinarConfig";
 
 const MAX_ARQUIVO_IMPORTACAO_BYTES = 10 * 1024 * 1024;
@@ -26,8 +27,9 @@ function parseWebinarFormData(formData: FormData) {
   const slugInput = String(formData.get("slug") ?? "").trim();
   const slug = slugify(slugInput || titulo);
   const videoUrl = String(formData.get("videoUrl") ?? "").trim();
-  const videoDurationSeconds = Number(formData.get("videoDurationSeconds"));
-  const pitchTimestampSeconds = Number(formData.get("pitchTimestampSeconds"));
+  // Tempos chegam como hh:mm:ss (ou so segundos) e sao gravados em segundos
+  const videoDurationSeconds = parseTempoHMS(String(formData.get("videoDurationSeconds") ?? "")) ?? Number.NaN;
+  const pitchTimestampSeconds = parseTempoHMS(String(formData.get("pitchTimestampSeconds") ?? "")) ?? Number.NaN;
   const ctaTexto = String(formData.get("ctaTexto") ?? "").trim();
   const ctaLink = String(formData.get("ctaLink") ?? "").trim();
   const tipoAgendamentoRaw = String(formData.get("tipoAgendamento") ?? "recorrente");
@@ -87,7 +89,7 @@ function parseWebinarFormData(formData: FormData) {
   const ctaCountdownMinutos = ctaCountdownRaw ? Number(ctaCountdownRaw) : undefined;
 
   const ctaDesaparecerRaw = String(formData.get("ctaDesaparecerSegundos") ?? "").trim();
-  const ctaDesaparecerSegundos = ctaDesaparecerRaw ? Number(ctaDesaparecerRaw) : undefined;
+  const ctaDesaparecerSegundos = ctaDesaparecerRaw ? (parseTempoHMS(ctaDesaparecerRaw) ?? Number.NaN) : undefined;
 
   const audienciaFakeMinRaw = String(formData.get("audienciaFakeMin") ?? "").trim();
   const audienciaFakeMin = audienciaFakeMinRaw ? Number(audienciaFakeMinRaw) : undefined;
@@ -111,6 +113,9 @@ function parseWebinarFormData(formData: FormData) {
   }
   if (!Number.isFinite(pitchTimestampSeconds) || pitchTimestampSeconds < 0) {
     throw new Error("Timestamp do CTA invalido.");
+  }
+  if (ctaDesaparecerSegundos !== undefined && Number.isNaN(ctaDesaparecerSegundos)) {
+    throw new Error("Tempo em que a oferta some invalido.");
   }
   if (tipoAgendamento === "agendado" && !agendadoDataHoraInicio) {
     throw new Error("Defina a data e hora de inicio do agendamento.");

@@ -13,6 +13,7 @@ import {
   type OrigemLead,
   type ViaEntrada,
 } from "@/lib/linksAcesso";
+import { ORIGEM_CONVIDADO, type ParticipanteChat } from "@/lib/chatAoVivo";
 
 /**
  * Identificacao do participante nas paginas publicas (so servidor). O lead e
@@ -142,4 +143,40 @@ export function redirecionarSeMagicLink(
 ): void {
   if (!lerDadosParticipante(params)) return;
   redirect(webinarPath(slug, "entrar", { ...paramsParaQuery(params), via }));
+}
+
+/** Convidado do chat nao conta como cadastro (ex: webinar com "exigir cadastro"). */
+export function leadCadastrado(lead: Lead | null): lead is Lead {
+  return lead !== null && lead.origem !== ORIGEM_CONVIDADO;
+}
+
+export function participanteDoChat(lead: Lead | null): ParticipanteChat | null {
+  return lead ? { nome: lead.nome, convidado: lead.origem === ORIGEM_CONVIDADO } : null;
+}
+
+/**
+ * Entrada no chat com nome e WhatsApp. Um convidado que decide se
+ * identificar vira cadastro sem perder os comentarios que ja fez. Nao
+ * reaproveita cadastro de outro navegador pelo numero: quem digitasse o
+ * WhatsApp de outra pessoa veria os comentarios e respostas dela.
+ */
+export async function registrarParticipanteChat(
+  webinarId: string,
+  nome: string,
+  whatsapp: string,
+  atual: Lead | null,
+): Promise<Lead> {
+  if (atual && (atual.origem === ORIGEM_CONVIDADO || atual.telefone === whatsapp)) {
+    return prisma.lead.update({
+      where: { id: atual.id },
+      data: { nome, telefone: whatsapp, origem: atual.origem === ORIGEM_CONVIDADO ? "chat" : atual.origem },
+    });
+  }
+  return prisma.lead.create({ data: { webinarId, nome, telefone: whatsapp, origem: "chat" } });
+}
+
+/** Entrada no chat sem dados: aparece como "Convidado 1234". */
+export async function registrarConvidado(webinarId: string): Promise<Lead> {
+  const numero = 1000 + Math.floor(Math.random() * 9000);
+  return prisma.lead.create({ data: { webinarId, nome: `Convidado ${numero}`, origem: ORIGEM_CONVIDADO } });
 }

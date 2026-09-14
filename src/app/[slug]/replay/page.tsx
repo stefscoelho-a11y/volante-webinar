@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { extractYouTubeId } from "@/lib/youtube";
 import { formatarDataHoraBrasilia } from "@/lib/scheduling";
 import { lerUtms } from "@/lib/linksAcesso";
-import { getLeadAtual, redirecionarSeMagicLink } from "@/lib/leads";
+import { getLeadAtual, leadCadastrado, participanteDoChat, redirecionarSeMagicLink } from "@/lib/leads";
 import { getStatusReplay } from "@/lib/replay";
 import { SalaRoom } from "@/components/SalaRoom";
 import { CadastroForm } from "@/components/CadastroForm";
@@ -41,7 +41,7 @@ export default async function ReplayPage({ params, searchParams }: ReplayPagePro
   }
 
   const lead = await getLeadAtual(webinar.id, typeof query.a === "string" ? query.a : undefined);
-  if (webinar.exigirCadastro && !lead) {
+  if (webinar.exigirCadastro && !leadCadastrado(lead)) {
     return (
       <CadastroForm
         titulo={webinar.titulo}
@@ -103,7 +103,7 @@ export default async function ReplayPage({ params, searchParams }: ReplayPagePro
         webinarId: webinar.id,
         pagina: "replay",
         sessao: "replay",
-        participante: lead ? { nome: lead.nome } : null,
+        participante: participanteDoChat(lead),
       }}
       isReplay
       chatMessages={webinar.chatMessages.map((message) => ({

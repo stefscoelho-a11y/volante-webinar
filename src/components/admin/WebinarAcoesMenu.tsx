@@ -80,7 +80,7 @@ export function WebinarAcoesMenu({
             <Link2 className="h-4 w-4 text-gray-400" />
             Links
           </Link>
-          <Link role="menuitem" href={`${base}/ao-vivo`} className={classeItem}>
+          <Link role="menuitem" href={`/admin/ao-vivo/${webinarId}`} className={classeItem}>
             <Radio className="h-4 w-4 text-gray-400" />
             Ao vivo
           </Link>

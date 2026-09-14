@@ -11,7 +11,7 @@ import {
   type RepeticaoAgendado,
 } from "@/lib/scheduling";
 import { webinarPath } from "@/lib/linksAcesso";
-import { getLeadAtual } from "@/lib/leads";
+import { getLeadAtual, leadCadastrado, participanteDoChat } from "@/lib/leads";
 import { SalaRoom } from "@/components/SalaRoom";
 import { AvisoPagina } from "@/components/AvisoPagina";
 
@@ -84,7 +84,7 @@ export default async function SalaPage({ params, searchParams }: PageProps) {
     }
     sessionStart = lead.sessaoEscolhida;
   } else {
-    if (webinar.exigirCadastro && !lead) redirect(webinarPath(slug));
+    if (webinar.exigirCadastro && !leadCadastrado(lead)) redirect(webinarPath(slug));
     sessionStart = resolveSessionStart(webinar, horarioEscolhido);
     // Primeira sessao do participante: referencia pra liberar o replay dele
     if (lead && sessionStart && !lead.sessaoEscolhida) {
@@ -141,7 +141,7 @@ export default async function SalaPage({ params, searchParams }: PageProps) {
         webinarId: webinar.id,
         pagina: "sala",
         sessao: sessionStart.toISOString(),
-        participante: lead ? { nome: lead.nome } : null,
+        participante: participanteDoChat(lead),
       }}
       chatMessages={webinar.chatMessages.map((message) => ({
         id: message.id,

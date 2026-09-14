@@ -30,6 +30,15 @@ const VIDEO_TIME_POLL_MS = 500;
 // A legenda automatica do YouTube liga sozinha pra quem marcou "sempre mostrar
 // legendas" na conta - cc_load_policy:0 nao impede. Descarregar o modulo de
 // legendas resolve (chamado de novo quando o player recarrega modulos).
+// APIs de tela cheia com prefixo webkit (Safari) e o lock de orientacao, que
+// nao estao nos tipos padrao do TypeScript
+type ElementoTelaCheia = HTMLDivElement & { webkitRequestFullscreen?: () => Promise<void> | void };
+type DocumentoTelaCheia = Document & {
+  webkitFullscreenElement?: Element | null;
+  webkitExitFullscreen?: () => Promise<void> | void;
+};
+type OrientacaoTela = ScreenOrientation & { lock?: (orientacao: string) => Promise<void> };
+
 function esconderLegendas(player: YouTubePlayer) {
   player.unloadModule?.("captions");
   player.unloadModule?.("cc");
@@ -93,6 +102,10 @@ export function SalaVideo({
   // So mostra o video enquanto ele toca: carregando, pausado ou no fim o
   // YouTube desenha titulo e sugestoes de "mais videos" por cima dele.
   const [reproduzindo, setReproduzindo] = useState(false);
+  const [telaCheiaNativa, setTelaCheiaNativa] = useState(false);
+  // iPhone nao deixa colocar um elemento em tela cheia: ai o player ocupa a tela via CSS
+  const [telaCheiaSimulada, setTelaCheiaSimulada] = useState(false);
+  const emTelaCheia = telaCheiaNativa || telaCheiaSimulada;
   const playerRef = useRef<YouTubePlayer | null>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const onVideoTimeChangeRef = useRef(onVideoTimeChange);
@@ -215,11 +228,57 @@ export function SalaVideo({
     setShowUnmutePrompt(false);
   }
 
-  async function toggleFullscreen() {
-    const frame = frameRef.current;
+  useEffect(() => {
+    const doc = document as DocumentoTelaCheia;
+    function aoMudarTelaCheia() {
+      setTelaCheiaNativa(Boolean(document.fullscreenElement || doc.webkitFullscreenElement));
+    }
+    document.addEventListener("fullscreenchange", aoMudarTelaCheia);
+    document.addEventListener("webkitfullscreenchange", aoMudarTelaCheia);
+    return () => {
+      document.removeEventListener("fullscreenchange", aoMudarTelaCheia);
+      document.removeEventListener("webkitfullscreenchange", aoMudarTelaCheia);
+    };
+  }, []);
+
+  // Tela cheia simulada: trava a rolagem da pagina e sai com Esc
+  useEffect(() => {
+    if (!telaCheiaSimulada) return;
+    const overflowAnterior = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    function sairComEsc(evento: KeyboardEvent) {
+      if (evento.key === "Escape") setTelaCheiaSimulada(false);
+    }
+    document.addEventListener("keydown", sairComEsc);
+    return () => {
+      document.body.style.overflow = overflowAnterior;
+      document.removeEventListener("keydown", sairComEsc);
+    };
+  }, [telaCheiaSimulada]);
+
+  async function alternarTelaCheia() {
+    const frame = frameRef.current as ElementoTelaCheia | null;
+    const doc = document as DocumentoTelaCheia;
     if (!frame) return;
-    if (document.fullscreenElement) await document.exitFullscreen();
-    else await frame.requestFullscreen();
+
+    if (telaCheiaSimulada) {
+      setTelaCheiaSimulada(false);
+      return;
+    }
+    if (document.fullscreenElement || doc.webkitFullscreenElement) {
+      await (document.exitFullscreen ? document.exitFullscreen() : doc.webkitExitFullscreen?.());
+      return;
+    }
+
+    try {
+      if (frame.requestFullscreen) await frame.requestFullscreen();
+      else if (frame.webkitRequestFullscreen) await frame.webkitRequestFullscreen();
+      else throw new Error("Tela cheia nao suportada");
+      // No celular, gira pra paisagem quando o navegador deixa (Android)
+      (screen.orientation as OrientacaoTela | undefined)?.lock?.("landscape").catch(() => {});
+    } catch {
+      setTelaCheiaSimulada(true);
+    }
   }
 
   const progress = Math.min(100, Math.max(0, (currentTime / videoDurationSeconds) * 100));
@@ -228,7 +287,14 @@ export function SalaVideo({
   return (
     <div
       ref={frameRef}
-      className={`group relative aspect-video w-full overflow-hidden bg-black ${isYouTube ? "rounded-xl" : "rounded-lg"}`}
+      // Sem borda arredondada no celular (video de ponta a ponta) nem em tela cheia
+      // "relative" e "fixed" nunca juntos: no CSS gerado "relative" vence e o player
+      // ficaria preso na coluna em vez de ocupar a tela
+      className={`group w-full overflow-hidden bg-black [&:fullscreen]:rounded-none ${
+        telaCheiaSimulada
+          ? "fixed inset-0 z-[70] h-[100dvh]"
+          : `relative aspect-video ${isYouTube ? "sm:rounded-xl" : "sm:rounded-lg"}`
+      }`}
     >
       {/* pointer-events-none bloqueia qualquer clique/toque/scroll no
           iframe do YouTube (inclusive botao direito), impedindo o
@@ -311,16 +377,16 @@ export function SalaVideo({
               {formatPlayerTime(currentTime)} / {formatPlayerTime(videoDurationSeconds)}
             </span>
             <span className="flex-1" />
-            <button
-              type="button"
-              onClick={toggleFullscreen}
-              aria-label="Tela cheia"
-              className="flex h-7 w-7 items-center justify-center transition hover:scale-105"
-            >
-              <IconFullscreen />
-            </button>
           </>
         )}
+        <button
+          type="button"
+          onClick={alternarTelaCheia}
+          aria-label={emTelaCheia ? "Sair da tela cheia" : "Tela cheia"}
+          className="flex h-7 w-7 items-center justify-center text-white transition hover:scale-105"
+        >
+          {emTelaCheia ? <IconSairTelaCheia /> : <IconFullscreen />}
+        </button>
       </div>
     </div>
   );
@@ -368,6 +434,14 @@ function IconEye() {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
       <path d="M1.5 12s4-7 10.5-7 10.5 7 10.5 7-4 7-10.5 7-10.5-7-10.5-7Z" />
       <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function IconSairTelaCheia() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+      <path d="M8 3v5H3M16 3v5h5M8 21v-5H3M16 21v-5h5" />
     </svg>
   );
 }

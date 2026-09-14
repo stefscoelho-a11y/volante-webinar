@@ -8,6 +8,7 @@ import { contarAssistindoPorWebinar } from "@/lib/aoVivo";
 import { TIPOS_AGENDAMENTO } from "@/lib/scheduling";
 import { resumoAgenda, rotuloTipoAgendamento } from "@/lib/webinarResumo";
 import { extractYouTubeId } from "@/lib/youtube";
+import { AtualizarPagina } from "@/components/admin/AtualizarPagina";
 import { BotaoIcone, classeBotaoIcone } from "@/components/admin/BotaoIcone";
 import { FiltrosWebinars } from "@/components/admin/FiltrosWebinars";
 import { ImportarWebinarDialog } from "@/components/admin/ImportarWebinarDialog";
@@ -70,6 +71,8 @@ export default async function WebinarsListPage({ searchParams }: WebinarsListPag
 
   return (
     <div className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-8 sm:py-8">
+      {/* Mantem o "assistindo agora" atualizado sem precisar de F5 */}
+      <AtualizarPagina intervaloMs={10_000} />
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-gray-900 sm:text-[28px]">Webinários</h1>
@@ -137,7 +140,7 @@ export default async function WebinarsListPage({ searchParams }: WebinarsListPag
                       <p className="mt-1 truncate text-[13px] text-gray-500">{resumoAgenda(webinar)}</p>
                       {assistindo > 0 && (
                         <Link
-                          href={`/admin/webinars/${webinar.id}/ao-vivo`}
+                          href={`/admin/ao-vivo/${webinar.id}`}
                           className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 hover:text-emerald-800"
                         >
                           <span className="relative flex h-2 w-2">

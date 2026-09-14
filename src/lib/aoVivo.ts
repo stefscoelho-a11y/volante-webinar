@@ -1,5 +1,11 @@
 import { prisma } from "@/lib/prisma";
-import { MAX_COMENTARIO, NOME_SUPORTE_PADRAO, ONLINE_ATE_SEGUNDOS, type DadosAoVivo } from "@/lib/chatAoVivo";
+import {
+  MAX_COMENTARIO,
+  NOME_SUPORTE_PADRAO,
+  ONLINE_ATE_SEGUNDOS,
+  ORIGEM_CONVIDADO,
+  type DadosAoVivo,
+} from "@/lib/chatAoVivo";
 
 /**
  * Painel Ao vivo (so servidor): leitura de presenca/comentarios e resposta do
@@ -25,7 +31,7 @@ export async function carregarDadosAoVivo(webinarId: string): Promise<DadosAoViv
         pagina: true,
         videoSegundos: true,
         entrouEm: true,
-        lead: { select: { nome: true, email: true } },
+        lead: { select: { nome: true, email: true, telefone: true, origem: true } },
       },
     }),
     prisma.comentario.findMany({
@@ -39,7 +45,7 @@ export async function carregarDadosAoVivo(webinarId: string): Promise<DadosAoViv
         videoSegundos: true,
         sessao: true,
         criadoEm: true,
-        lead: { select: { email: true } },
+        lead: { select: { email: true, telefone: true, origem: true } },
         respostas: {
           orderBy: { criadoEm: "asc" },
           select: { id: true, nomeAutor: true, texto: true, criadoEm: true },
@@ -55,6 +61,8 @@ export async function carregarDadosAoVivo(webinarId: string): Promise<DadosAoViv
       visitanteId: presenca.visitanteId,
       nome: presenca.lead?.nome ?? null,
       email: presenca.lead?.email ?? null,
+      whatsapp: presenca.lead?.telefone ?? null,
+      convidado: presenca.lead?.origem === ORIGEM_CONVIDADO,
       pagina: presenca.pagina === "replay" ? "replay" : "sala",
       videoSegundos: presenca.videoSegundos,
       entrouEm: presenca.entrouEm.toISOString(),
@@ -63,6 +71,8 @@ export async function carregarDadosAoVivo(webinarId: string): Promise<DadosAoViv
       id: comentario.id,
       nomeAutor: comentario.nomeAutor,
       email: comentario.lead.email,
+      whatsapp: comentario.lead.telefone,
+      convidado: comentario.lead.origem === ORIGEM_CONVIDADO,
       texto: comentario.texto,
       videoSegundos: comentario.videoSegundos,
       pagina: comentario.sessao === "replay" ? "replay" : "sala",

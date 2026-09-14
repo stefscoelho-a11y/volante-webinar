@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getAgendadoSessionStart, type RepeticaoAgendado } from "@/lib/scheduling";
 import { lerUtms, webinarPath } from "@/lib/linksAcesso";
-import { getLeadAtual, redirecionarSeMagicLink } from "@/lib/leads";
+import { getLeadAtual, leadCadastrado, redirecionarSeMagicLink } from "@/lib/leads";
 import { FixoScheduleSelector } from "@/components/FixoScheduleSelector";
 import { CadastroForm } from "@/components/CadastroForm";
 import { AvisoPagina } from "@/components/AvisoPagina";
@@ -33,7 +33,7 @@ export default async function SalaPrincipalPage({ params, searchParams }: SalaPr
     return <EntradaJustInTime webinar={webinar} via="principal" query={query} />;
   }
 
-  if (webinar.exigirCadastro && !(await getLeadAtual(webinar.id))) {
+  if (webinar.exigirCadastro && !leadCadastrado(await getLeadAtual(webinar.id))) {
     return (
       <CadastroForm
         titulo={webinar.titulo}

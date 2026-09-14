@@ -106,7 +106,8 @@ model Lead {
   webinarId       String    @map("webinar_id")
   webinar         Webinar   @relation(fields: [webinarId], references: [id], onDelete: Cascade)
   nome            String
-  email           String
+  // Opcional: quem entra pelo chat com nome e WhatsApp, ou como convidado, nao tem email
+  email           String?
   telefone        String?
   // Identifica o participante nas paginas publicas (cookie ou ?a= na URL)
   tokenAcesso     String    @unique @default(uuid()) @map("token_acesso")
@@ -125,6 +126,7 @@ model Lead {
   presencas       Presenca[]
 
   @@index([webinarId, email])
+  @@index([webinarId, telefone])
   @@index([webinarId])
   @@map("leads")
 }

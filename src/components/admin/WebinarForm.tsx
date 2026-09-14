@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, type CSSProperties } from "react";
 import type { RepeticaoAgendado, TipoAgendamento } from "@/lib/scheduling";
 import { FONTES_SALA, VISUAL_DEFAULTS, getContrastColor, type FonteSala, type TemaSala } from "@/lib/webinarVisual";
+import { CampoTempo } from "./CampoTempo";
 import {
   WebinarStepper,
   IconInicio,
@@ -15,7 +16,6 @@ import {
   IconChat,
   IconPreview,
   IconLinks,
-  IconAoVivo,
   type WebinarStepKey,
 } from "./WebinarStepper";
 
@@ -129,7 +129,6 @@ export function WebinarForm({ action, initialValues, submitLabel, webinarId, ini
           { key: "links" as const, label: "Links", icon: IconLinks, href: `/admin/webinars/${webinarId}/links` },
           { key: "chat" as const, label: "Chat Fake", icon: IconChat, href: `/admin/webinars/${webinarId}/chat` },
           { key: "preview" as const, label: "Preview", icon: IconPreview, href: `/admin/webinars/${webinarId}/preview` },
-          { key: "ao-vivo" as const, label: "Ao vivo", icon: IconAoVivo, href: `/admin/webinars/${webinarId}/ao-vivo` },
         ]
       : []),
   ];
@@ -175,13 +174,12 @@ export function WebinarForm({ action, initialValues, submitLabel, webinarId, ini
               />
             </Field>
 
-            <Field label="Duração do vídeo (segundos)">
-              <input
-                type="number"
+            <Field label="Duração do vídeo (hh:mm:ss)">
+              <CampoTempo
                 name="videoDurationSeconds"
-                defaultValue={values.videoDurationSeconds}
-                required
-                min={1}
+                valorInicial={values.videoDurationSeconds}
+                obrigatorio
+                placeholder="00:10:00"
                 className={inputClass}
               />
             </Field>
@@ -395,23 +393,20 @@ export function WebinarForm({ action, initialValues, submitLabel, webinarId, ini
             </Field>
 
             <div className="grid grid-cols-2 gap-4">
-              <Field label="Aparece em (segundos do vídeo)">
-                <input
-                  type="number"
+              <Field label="Aparece em (hh:mm:ss do vídeo)">
+                <CampoTempo
                   name="pitchTimestampSeconds"
-                  defaultValue={values.pitchTimestampSeconds}
-                  required
-                  min={0}
+                  valorInicial={values.pitchTimestampSeconds}
+                  obrigatorio
+                  placeholder="00:05:00"
                   className={inputClass}
                 />
               </Field>
-              <Field label="Some em (segundos do vídeo, opcional)">
-                <input
-                  type="number"
+              <Field label="Some em (hh:mm:ss, opcional)">
+                <CampoTempo
                   name="ctaDesaparecerSegundos"
-                  defaultValue={values.ctaDesaparecerSegundos ?? ""}
-                  min={0}
-                  placeholder="deixe em branco pra ficar até o fim"
+                  valorInicial={values.ctaDesaparecerSegundos}
+                  placeholder="em branco: fica até o fim"
                   className={inputClass}
                 />
               </Field>

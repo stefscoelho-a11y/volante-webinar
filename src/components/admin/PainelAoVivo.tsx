@@ -4,8 +4,14 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { ExternalLink, MessageSquare, Radio, Users } from "lucide-react";
 import { formatarTempo } from "@/lib/legendas";
 import { webinarPath } from "@/lib/linksAcesso";
-import { MAX_COMENTARIO, type ComentarioPainel, type DadosAoVivo } from "@/lib/chatAoVivo";
-import { responderComentario } from "@/app/admin/webinars/[id]/ao-vivo/actions";
+import {
+  MAX_COMENTARIO,
+  formatarWhatsapp,
+  normalizarWhatsapp,
+  type ComentarioPainel,
+  type DadosAoVivo,
+} from "@/lib/chatAoVivo";
+import { responderComentario } from "@/app/admin/ao-vivo/[id]/actions";
 
 const INTERVALO_ATUALIZACAO_MS = 4000;
 
@@ -32,7 +38,7 @@ export function PainelAoVivo({ webinarId, slug, ativo }: PainelAoVivoProps) {
 
   const carregar = useCallback(async () => {
     try {
-      const resposta = await fetch(`/admin/webinars/${webinarId}/ao-vivo/dados`, { cache: "no-store" });
+      const resposta = await fetch(`/admin/ao-vivo/${webinarId}/dados`, { cache: "no-store" });
       if (!resposta.ok) throw new Error(String(resposta.status));
       const novos = (await resposta.json()) as DadosAoVivo;
       setDados(novos);
@@ -110,7 +116,9 @@ export function PainelAoVivo({ webinarId, slug, ativo }: PainelAoVivoProps) {
                   <PontoAoVivo />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-gray-900">{espectador.nome ?? "Visitante anônimo"}</p>
-                    <p className="truncate text-xs text-gray-500">{espectador.email ?? "Ainda não se identificou"}</p>
+                    <p className="truncate">
+                      <Contato email={espectador.email} whatsapp={espectador.whatsapp} convidado={espectador.convidado} />
+                    </p>
                   </div>
                   <div className="shrink-0 text-right">
                     <span className="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
@@ -201,7 +209,8 @@ function ItemComentario({
     <li className="px-4 py-3">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <p className="text-sm font-medium text-gray-900">
-          {comentario.nomeAutor} <span className="font-normal text-gray-500">{comentario.email}</span>
+          {comentario.nomeAutor}{" "}
+          <Contato email={comentario.email} whatsapp={comentario.whatsapp} convidado={comentario.convidado} />
         </p>
         <p className="text-xs tabular-nums text-gray-400">
           {comentario.pagina === "replay" ? "Replay" : "Ao vivo"} · {formatarTempo(comentario.videoSegundos)} do vídeo ·{" "}
@@ -249,6 +258,24 @@ function Indicador({ rotulo, valor, destaque = false }: { rotulo: string; valor:
       <p className="mt-1 text-2xl font-semibold tabular-nums text-gray-900">{valor ?? "—"}</p>
     </div>
   );
+}
+
+function Contato({ email, whatsapp, convidado }: { email: string | null; whatsapp: string | null; convidado: boolean }) {
+  const numero = whatsapp ? normalizarWhatsapp(whatsapp) : null;
+  if (numero) {
+    return (
+      <a
+        href={`https://wa.me/${numero}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-xs font-normal text-emerald-700 hover:underline"
+      >
+        WhatsApp {formatarWhatsapp(numero)}
+      </a>
+    );
+  }
+  const texto = whatsapp ?? email ?? (convidado ? "Convidado, sem dados" : "Ainda não entrou no chat");
+  return <span className="text-xs font-normal text-gray-500">{texto}</span>;
 }
 
 function PontoAoVivo() {
