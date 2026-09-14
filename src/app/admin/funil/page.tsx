@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { AdminShell } from "@/components/admin/AdminShell";
+import { ORIGENS_LEAD } from "@/lib/linksAcesso";
 
 export const dynamic = "force-dynamic";
 
@@ -8,8 +9,8 @@ type FunilPageProps = {
 };
 
 const ETAPAS = [
-  { label: "Visitantes da página de inscrição", desc: "Quem chegou em /w/:slug" },
-  { label: "Entraram na sala", desc: "Chegaram em /w/:slug/sala" },
+  { label: "Visitantes da página de inscrição", desc: "Quem chegou em /:slug" },
+  { label: "Entraram na sala", desc: "Chegaram em /:slug/sala" },
   { label: "Chegaram no pitch", desc: "Assistiram até o timestamp do CTA" },
   { label: "Clicaram no CTA", desc: "Clicaram no botão da oferta" },
 ];
@@ -18,6 +19,13 @@ export default async function FunilPage({ searchParams }: FunilPageProps) {
   const { webinarId } = await searchParams;
   const webinars = await prisma.webinar.findMany({ orderBy: { criadoEm: "desc" } });
   const webinarSelecionado = webinarId ? webinars.find((w) => w.id === webinarId) : webinars[0];
+  const cadastrosPorOrigem = webinarSelecionado
+    ? await prisma.lead.groupBy({
+        by: ["origem"],
+        where: { webinarId: webinarSelecionado.id },
+        _count: { _all: true },
+      })
+    : [];
 
   return (
     <AdminShell>
@@ -79,6 +87,22 @@ export default async function FunilPage({ searchParams }: FunilPageProps) {
                   </div>
                 </div>
               ))}
+            </div>
+
+            <div className="mt-6 rounded-xl border border-gray-200 bg-white p-4">
+              <h2 className="text-sm font-semibold text-gray-900">Cadastros por link</h2>
+              <p className="mb-3 mt-0.5 text-xs text-gray-500">Por qual link cada participante chegou pela primeira vez.</p>
+              <div className="space-y-2">
+                {Object.entries(ORIGENS_LEAD).map(([origem, label]) => {
+                  const total = cadastrosPorOrigem.find((item) => item.origem === origem)?._count._all ?? 0;
+                  return (
+                    <div key={origem} className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">{label}</span>
+                      <span className="font-semibold tabular-nums text-gray-900">{total}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </>
         )}

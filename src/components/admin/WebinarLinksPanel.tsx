@@ -1,46 +1,82 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
+import { FERRAMENTAS_EMAIL, getPublicBaseUrl, magicLinkQuery, webinarPath } from "@/lib/linksAcesso";
+
+const semInscricao = () => () => {};
 
 type WebinarLinksPanelProps = {
   slug: string;
+  tokenSalaTeste: string;
+  justInTimeDisponivel: boolean;
+  replayAtivo: boolean;
+  regenerarTokenAction: () => void | Promise<void>;
 };
 
-const LINKS = [
-  {
-    key: "agendamento",
-    label: "Link de agendamento",
-    desc: "Página pública de entrada (onde o lead escolhe ou aguarda a sessão)",
-    path: (slug: string) => `/w/${slug}`,
-  },
-  {
-    key: "sala",
-    label: "Link da sala",
-    desc: "Acesso direto à sala, já na sessão calculada pelo agendamento",
-    path: (slug: string) => `/w/${slug}/sala`,
-  },
-  {
-    key: "replay",
-    label: "Link de replay",
-    desc: "Assistir a qualquer momento, sem depender do agendamento",
-    path: (slug: string) => `/w/${slug}/replay`,
-  },
-];
-
-export function WebinarLinksPanel({ slug }: WebinarLinksPanelProps) {
-  const [origin, setOrigin] = useState("");
+export function WebinarLinksPanel({
+  slug,
+  tokenSalaTeste,
+  justInTimeDisponivel,
+  replayAtivo,
+  regenerarTokenAction,
+}: WebinarLinksPanelProps) {
+  // O endereco so existe no navegador: no servidor e na hidratacao fica vazio.
+  const origin = useSyncExternalStore(semInscricao, () => getPublicBaseUrl(window.location.origin), () => "");
+  const [ferramentaKey, setFerramentaKey] = useState<string>(FERRAMENTAS_EMAIL[0].key);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  useEffect(() => {
-    const timeout = window.setTimeout(() => setOrigin(window.location.origin), 0);
-    return () => window.clearTimeout(timeout);
-  }, []);
+  const ferramenta = FERRAMENTAS_EMAIL.find((item) => item.key === ferramentaKey) ?? FERRAMENTAS_EMAIL[0];
+  const magic = magicLinkQuery(ferramenta);
+  const avisoJustInTime = justInTimeDisponivel ? null : "Desativado: habilite o just in time nas configurações abaixo.";
 
-  if (!slug) return null;
+  const links = [
+    {
+      key: "principal",
+      label: "Sala principal",
+      path: webinarPath(slug),
+      desc: "Acesso dos participantes à sala. Segue o agendamento e, se o cadastro estiver ligado, pede nome e email antes.",
+      aviso: null,
+    },
+    {
+      key: "magic_link",
+      label: "Sala com magic link",
+      path: `${webinarPath(slug)}?${magic}`,
+      desc: "Para disparos de email: a ferramenta preenche nome e email e o participante entra direto, sem cadastro. Os dados saem da URL antes da sala abrir.",
+      aviso: null,
+    },
+    {
+      key: "just_in_time",
+      label: "Sala com just in time",
+      path: webinarPath(slug, "jit"),
+      desc: "Leva ao cadastro just in time: a sala abre alguns minutos depois que a pessoa se cadastra.",
+      aviso: avisoJustInTime,
+    },
+    {
+      key: "just_in_time_magic",
+      label: "Sala just in time com magic link",
+      path: `${webinarPath(slug, "jit")}?${magic}`,
+      desc: "Just in time sem formulário: o cadastro é feito com os dados da URL e a contagem começa no clique.",
+      aviso: avisoJustInTime,
+    },
+    {
+      key: "teste",
+      label: "Sala teste",
+      path: webinarPath(slug, "teste", { k: tokenSalaTeste }),
+      desc: "Sala liberada para testes: ignora o agendamento, tem controles para pular no vídeo e não registra cadastros nem dispara o Pixel. Não divulgue.",
+      aviso: null,
+    },
+    {
+      key: "replay",
+      label: "Sala com replay",
+      path: webinarPath(slug, "replay"),
+      desc: "Gravação para depois do evento: só abre após a sessão e respeita o prazo configurado. Também aceita nome e email na URL.",
+      aviso: replayAtivo ? null : "Desativado: habilite o replay nas configurações abaixo.",
+    },
+  ];
 
-  async function copiar(path: string, key: string) {
+  async function copiar(url: string, key: string) {
     try {
-      await navigator.clipboard.writeText(`${origin}${path}`);
+      await navigator.clipboard.writeText(url);
       setCopiedKey(key);
       setTimeout(() => setCopiedKey((current) => (current === key ? null : current)), 2000);
     } catch {
@@ -49,44 +85,70 @@ export function WebinarLinksPanel({ slug }: WebinarLinksPanelProps) {
   }
 
   return (
-    <div className="border-t border-gray-200 pt-4">
-      <h3 className="mb-2 text-sm font-semibold text-gray-900">Links do webinário</h3>
-      <div className="space-y-2">
-        {LINKS.map((link) => {
-          const path = link.path(slug);
+    <section className="rounded-xl border border-gray-200 bg-white p-5">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-semibold text-gray-900">Links</h2>
+          <p className="mt-0.5 text-xs text-gray-500">Um link para cada forma de acesso ao webinário.</p>
+        </div>
+        <label className="flex items-center gap-2 text-xs text-gray-500">
+          Magic link para
+          <select
+            value={ferramentaKey}
+            onChange={(e) => setFerramentaKey(e.target.value)}
+            className="rounded-lg border border-gray-300 bg-gray-100 px-2 py-1 text-xs text-gray-800"
+          >
+            {FERRAMENTAS_EMAIL.map((item) => (
+              <option key={item.key} value={item.key}>
+                {item.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <div className="space-y-5">
+        {links.map((link) => {
+          const url = `${origin}${link.path}`;
           return (
-            <div
-              key={link.key}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2"
-            >
-              <div className="min-w-0">
-                <p className="text-xs font-medium text-gray-700">{link.label}</p>
-                <p className="truncate text-xs text-gray-500">
-                  {origin || "..."}
-                  {path}
+            <div key={link.key}>
+              <p className="mb-1.5 text-sm font-medium text-gray-800">{link.label}</p>
+              <div className="flex items-center gap-2">
+                <p
+                  title={url}
+                  className="min-w-0 flex-1 truncate rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600"
+                >
+                  {origin ? url : link.path}
                 </p>
-              </div>
-              <div className="flex shrink-0 gap-2">
                 <button
                   type="button"
-                  onClick={() => copiar(path, link.key)}
-                  className="rounded border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100"
+                  onClick={() => copiar(url, link.key)}
+                  className="shrink-0 rounded-lg bg-emerald-500 px-3 py-2 text-xs font-semibold text-neutral-950 hover:bg-emerald-400"
                 >
                   {copiedKey === link.key ? "Copiado!" : "Copiar"}
                 </button>
                 <a
-                  href={path}
+                  href={link.path}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="rounded border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100"
+                  className="shrink-0 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100"
                 >
                   Abrir
                 </a>
               </div>
+              <p className="mt-1.5 text-xs text-gray-500">{link.desc}</p>
+              {link.aviso && <p className="mt-1 text-xs font-medium text-amber-700">{link.aviso}</p>}
+              {link.key === "teste" && (
+                <form action={regenerarTokenAction}>
+                  <button type="submit" className="mt-1 text-xs text-gray-500 underline hover:text-gray-800">
+                    Gerar novo link de teste (o atual para de funcionar)
+                  </button>
+                </form>
+              )}
             </div>
           );
         })}
       </div>
-    </div>
+    </section>
   );
 }

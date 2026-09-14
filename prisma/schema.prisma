@@ -59,6 +59,20 @@ model Webinar {
   agendadoDataHoraFim         DateTime? @map("agendado_data_hora_fim")
   // "nenhuma" | "diaria" | "semanal"
   agendadoRepeticao           String?   @map("agendado_repeticao")
+  // --- Links de acesso (ver src/lib/linksAcesso.ts) ---
+  // Pede nome e email antes de entrar pela sala principal (desligado por padrao)
+  exigirCadastro              Boolean   @default(false) @map("exigir_cadastro")
+  // Habilita o link /{slug}/jit em webinars de outros tipos. No tipo
+  // "just_in_time" a sala principal ja e o cadastro just in time.
+  justInTimeAtivo             Boolean   @default(false) @map("just_in_time_ativo")
+  // Token secreto do link da sala teste (/{slug}/teste?k=...)
+  tokenSalaTeste              String    @unique @default(uuid()) @map("token_sala_teste")
+  // Replay: so abre depois da sessao. A liberacao pode ter data marcada e o
+  // acesso pode expirar numa data fixa e/ou X horas depois de liberado.
+  replayAtivo                 Boolean   @default(false) @map("replay_ativo")
+  replayLiberarEm             DateTime? @map("replay_liberar_em")
+  replayExpirarEm             DateTime? @map("replay_expirar_em")
+  replayDuracaoHoras          Int?      @map("replay_duracao_horas")
   ativo                       Boolean   @default(true)
   criadoEm                    DateTime  @default(now()) @map("criado_em")
 
@@ -86,14 +100,27 @@ model ChatMessage {
 }
 
 model Lead {
-  id              String   @id @default(cuid())
-  webinarId       String   @map("webinar_id")
-  webinar         Webinar  @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+  id              String    @id @default(cuid())
+  webinarId       String    @map("webinar_id")
+  webinar         Webinar   @relation(fields: [webinarId], references: [id], onDelete: Cascade)
   nome            String
   email           String
-  sessaoEscolhida DateTime @map("sessao_escolhida")
-  entrouEm        DateTime @default(now()) @map("entrou_em")
+  telefone        String?
+  // Identifica o participante nas paginas publicas (cookie ou ?a= na URL)
+  tokenAcesso     String    @unique @default(uuid()) @map("token_acesso")
+  // Link do primeiro acesso: chaves de ORIGENS_LEAD em src/lib/linksAcesso.ts
+  origem          String    @default("principal")
+  utmSource       String?   @map("utm_source")
+  utmMedium       String?   @map("utm_medium")
+  utmCampaign     String?   @map("utm_campaign")
+  utmContent      String?   @map("utm_content")
+  utmTerm         String?   @map("utm_term")
+  // Sessao do participante: no just in time, cadastro + delay; nos demais
+  // tipos, a primeira sessao em que entrou. Referencia pra liberar o replay.
+  sessaoEscolhida DateTime? @map("sessao_escolhida")
+  entrouEm        DateTime  @default(now()) @map("entrou_em")
 
+  @@index([webinarId, email])
   @@index([webinarId])
   @@map("leads")
 }

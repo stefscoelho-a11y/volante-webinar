@@ -7,6 +7,7 @@ import { lerSegmentos } from "@/lib/legendas";
 import { Prisma } from "@/generated/prisma/client";
 import { REPETICOES_AGENDADO, TIPOS_AGENDAMENTO, type RepeticaoAgendado, type TipoAgendamento } from "@/lib/scheduling";
 import { parseFonteSala, parseHexColor, parseTemaSala, VISUAL_DEFAULTS } from "@/lib/webinarVisual";
+import { SLUGS_RESERVADOS } from "@/lib/linksAcesso";
 
 function slugify(value: string): string {
   return value
@@ -99,6 +100,9 @@ function parseWebinarFormData(formData: FormData) {
 
   if (!titulo || !slug || !videoUrl || !ctaTexto || !ctaLink) {
     throw new Error("Preencha todos os campos obrigatorios.");
+  }
+  if (SLUGS_RESERVADOS.includes(slug)) {
+    throw new Error(`A URL amigavel "${slug}" e reservada pelo sistema. Escolha outra.`);
   }
   if (!Number.isFinite(videoDurationSeconds) || videoDurationSeconds <= 0) {
     throw new Error("Duracao do video invalida.");
@@ -212,7 +216,9 @@ export async function updateWebinar(id: string, formData: FormData) {
       ativo: data.ativo,
       horariosFixos: data.horariosFixos ?? Prisma.JsonNull,
       intervaloRecorrenciaMinutos: data.intervaloRecorrenciaMinutos ?? null,
-      delayJustInTimeMinutos: data.delayJustInTimeMinutos ?? null,
+      // Sem "?? null": o delay tambem alimenta o link just in time de webinars
+      // de outros tipos (etapa Links), entao so muda quando vem no formulario.
+      delayJustInTimeMinutos: data.delayJustInTimeMinutos,
       agendadoDataHoraInicio: data.agendadoDataHoraInicio ?? null,
       agendadoDataHoraFim: data.agendadoDataHoraFim ?? null,
       agendadoRepeticao: data.tipoAgendamento === "agendado" ? data.agendadoRepeticao : null,
@@ -293,6 +299,12 @@ export async function duplicateWebinar(id: string) {
       agendadoDataHoraInicio: original.agendadoDataHoraInicio,
       agendadoDataHoraFim: original.agendadoDataHoraFim,
       agendadoRepeticao: original.agendadoRepeticao,
+      exigirCadastro: original.exigirCadastro,
+      justInTimeAtivo: original.justInTimeAtivo,
+      replayAtivo: original.replayAtivo,
+      replayLiberarEm: original.replayLiberarEm,
+      replayExpirarEm: original.replayExpirarEm,
+      replayDuracaoHoras: original.replayDuracaoHoras,
       // A copia comeca inativa de proposito - evita publicar uma sessao
       // agendada/recorrente duplicada sem revisar antes.
       ativo: false,

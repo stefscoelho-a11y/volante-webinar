@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState, type CSSProperties } from "react";
 import type { RepeticaoAgendado, TipoAgendamento } from "@/lib/scheduling";
 import { FONTES_SALA, VISUAL_DEFAULTS, getContrastColor, type FonteSala, type TemaSala } from "@/lib/webinarVisual";
@@ -13,9 +14,9 @@ import {
   IconIntegracoes,
   IconChat,
   IconPreview,
+  IconLinks,
   type WebinarStepKey,
 } from "./WebinarStepper";
-import { WebinarLinksPanel } from "./WebinarLinksPanel";
 
 type WebinarFormValues = {
   titulo: string;
@@ -124,6 +125,7 @@ export function WebinarForm({ action, initialValues, submitLabel, webinarId, ini
     ...FORM_STEPS.map((s) => ({ key: s.key, label: s.label, icon: s.icon, onClick: () => setStep(s.key) })),
     ...(webinarId
       ? [
+          { key: "links" as const, label: "Links", icon: IconLinks, href: `/admin/webinars/${webinarId}/links` },
           { key: "chat" as const, label: "Chat Fake", icon: IconChat, href: `/admin/webinars/${webinarId}/chat` },
           { key: "preview" as const, label: "Preview", icon: IconPreview, href: `/admin/webinars/${webinarId}/preview` },
         ]
@@ -204,7 +206,21 @@ export function WebinarForm({ action, initialValues, submitLabel, webinarId, ini
               </p>
             </div>
 
-            {webinarId && <WebinarLinksPanel slug={values.slug} />}
+            {webinarId && (
+              <div className="border-t border-gray-200 pt-4">
+                <h3 className="text-sm font-semibold text-gray-900">Links do webinário</h3>
+                <p className="mt-1 text-xs text-gray-500">
+                  Sala principal, magic link, just in time, sala teste e replay ficam na etapa{" "}
+                  <Link
+                    href={`/admin/webinars/${webinarId}/links`}
+                    className="font-medium text-emerald-600 hover:text-emerald-700"
+                  >
+                    Links
+                  </Link>
+                  .
+                </p>
+              </div>
+            )}
           </Section>
         </div>
 
@@ -677,7 +693,7 @@ function UrlAmigavelField({ defaultValue }: { defaultValue: string }) {
   return (
     <div className="flex items-stretch overflow-hidden rounded-lg border border-gray-300 bg-gray-100 focus-within:border-emerald-500">
       <span className="flex items-center whitespace-nowrap border-r border-gray-300 bg-gray-200 px-3 text-sm text-gray-500">
-        {origin || "seu-dominio"}/w/
+        {origin || "seu-dominio"}/
       </span>
       <input
         name="slug"

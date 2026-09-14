@@ -1,22 +1,28 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { extractYouTubeId } from "@/lib/youtube";
 import {
   getAgendadoSessionStart,
   getElapsedSeconds,
   getFixoSessionStart,
+  getFixoSessionStartParaHorario,
   getSessaoRecorrenteAlcancavel,
   isSessaoEncerrada,
   type RepeticaoAgendado,
 } from "@/lib/scheduling";
+import { webinarPath } from "@/lib/linksAcesso";
+import { getLeadAtual } from "@/lib/leads";
 import { SalaRoom } from "@/components/SalaRoom";
+import { AvisoPagina } from "@/components/AvisoPagina";
 
 export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
-  // sessionStart: override manual (ISO), usado pelo preview do admin (step 7)
-  searchParams: Promise<{ sessionStart?: string }>;
+  // a: token de acesso do participante; modo=jit: usa a sessao just in time
+  // do participante; h: horario escolhido na entrada (tipo fixo). Nenhum
+  // horario arbitrario e aceito pela URL.
+  searchParams: Promise<{ a?: string; modo?: string; h?: string }>;
 };
 
 function resolveSessionStart(
@@ -29,16 +35,18 @@ function resolveSessionStart(
     agendadoDataHoraFim: Date | null;
     agendadoRepeticao: string | null;
   },
-  overrideIso?: string,
+  horarioEscolhido?: string,
 ): Date | null {
-  if (overrideIso) return new Date(overrideIso);
-
   switch (webinar.tipoAgendamento) {
     case "recorrente":
       if (!webinar.intervaloRecorrenciaMinutos) return null;
       return getSessaoRecorrenteAlcancavel(webinar.intervaloRecorrenciaMinutos, webinar.videoDurationSeconds);
-    case "fixo":
-      return getFixoSessionStart((webinar.horariosFixos as string[]) ?? []);
+    case "fixo": {
+      const horariosFixos = Array.isArray(webinar.horariosFixos) ? (webinar.horariosFixos as string[]) : [];
+      return horarioEscolhido
+        ? getFixoSessionStartParaHorario(horarioEscolhido, horariosFixos, webinar.videoDurationSeconds)
+        : getFixoSessionStart(horariosFixos);
+    }
     case "agendado":
       if (!webinar.agendadoDataHoraInicio) return null;
       return getAgendadoSessionStart(
@@ -47,10 +55,6 @@ function resolveSessionStart(
         webinar.agendadoDataHoraFim,
         webinar.videoDurationSeconds,
       );
-    case "just_in_time":
-      // Precisa do horario de cadastro do lead, resolvido no fluxo de
-      // entrada publico (/w/:slug) - implementado no step 8.
-      return null;
     default:
       return null;
   }
@@ -58,7 +62,7 @@ function resolveSessionStart(
 
 export default async function SalaPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
-  const { sessionStart: sessionStartOverride } = await searchParams;
+  const { a: token, modo, h: horarioEscolhido } = await searchParams;
 
   const webinar = await prisma.webinar.findUnique({
     where: { slug },
@@ -68,19 +72,32 @@ export default async function SalaPage({ params, searchParams }: PageProps) {
   });
   if (!webinar || !webinar.ativo) notFound();
 
-  const sessionStart = resolveSessionStart(webinar, sessionStartOverride);
+  const lead = await getLeadAtual(webinar.id, token);
+  const modoJustInTime =
+    webinar.tipoAgendamento === "just_in_time" || (modo === "jit" && webinar.justInTimeAtivo);
+
+  let sessionStart: Date | null;
+  if (modoJustInTime) {
+    // A sessao just in time pertence ao participante: sem cadastro, volta pro formulario
+    if (!lead || !lead.sessaoEscolhida) {
+      redirect(webinar.tipoAgendamento === "just_in_time" ? webinarPath(slug) : webinarPath(slug, "jit"));
+    }
+    sessionStart = lead.sessaoEscolhida;
+  } else {
+    if (webinar.exigirCadastro && !lead) redirect(webinarPath(slug));
+    sessionStart = resolveSessionStart(webinar, horarioEscolhido);
+    // Primeira sessao do participante: referencia pra liberar o replay dele
+    if (lead && sessionStart && !lead.sessaoEscolhida) {
+      await prisma.lead.update({ where: { id: lead.id }, data: { sessaoEscolhida: sessionStart } });
+    }
+  }
 
   if (!sessionStart) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 p-6 text-center text-gray-900">
-        <div>
-          <h1 className="text-xl font-semibold">Nenhuma sessao disponivel agora</h1>
-          <p className="mt-2 text-gray-500">
-            Este webinario ainda nao tem um horario de sessao configurado corretamente, ou a serie de sessoes ja
-            chegou ao fim.
-          </p>
-        </div>
-      </div>
+      <AvisoPagina
+        titulo="Nenhuma sessão disponível agora"
+        mensagem="Este webinário ainda não tem um horário de sessão configurado corretamente, ou a série de sessões já chegou ao fim."
+      />
     );
   }
 
@@ -89,11 +106,7 @@ export default async function SalaPage({ params, searchParams }: PageProps) {
 
   const videoId = webinar.videoUrl ? extractYouTubeId(webinar.videoUrl) : null;
   if (!videoId) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 p-6 text-center text-gray-900">
-        <p>Video do webinario nao configurado corretamente.</p>
-      </div>
-    );
+    return <AvisoPagina titulo="Vídeo do webinário não configurado corretamente." />;
   }
 
   return (

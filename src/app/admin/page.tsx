@@ -47,7 +47,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
         <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatCard label="Webinários ativos" value={String(webinarsAtivos)} hint={`${totalWebinars} no total`} />
-          <StatCard label="Cadastros no período" value={String(leadsNoPeriodo)} hint="Fluxo just-in-time" />
+          <StatCard label="Cadastros no período" value={String(leadsNoPeriodo)} hint="Todos os links de acesso" />
           <StatCard label="Receita no período" value="—" hint="Em breve" placeholder />
           <StatCard label="Taxa de conversão" value="—" hint="Em breve" placeholder />
         </div>

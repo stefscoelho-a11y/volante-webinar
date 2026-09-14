@@ -74,14 +74,72 @@ export function getFixoSessionStart(horariosFixos: string[], now: Date = new Dat
   return candidatosOntem[0] ?? null;
 }
 
+/**
+ * Fuso das datas e horarios configurados no admin. O servidor (Vercel) roda
+ * em UTC, entao o fuso local do processo nao serve de referencia. O Brasil
+ * nao tem horario de verao desde 2019, por isso o offset e fixo em -03:00.
+ */
+export const FUSO_BRASILIA = "America/Sao_Paulo";
+const OFFSET_BRASILIA_MS = -3 * 60 * 60 * 1000;
+
+/**
+ * Horario "HH:mm" (de Brasilia) no dia de calendario de Brasilia em que
+ * `dia` cai. Da o mesmo resultado no servidor e no navegador, em qualquer
+ * fuso - a sala valida no servidor o horario escolhido no navegador.
+ */
 export function parseHorarioNoDia(horario: string, dia: Date): Date | null {
   const match = /^(\d{1,2}):(\d{2})$/.exec(horario.trim());
   if (!match) return null;
   const horas = Number(match[1]);
   const minutos = Number(match[2]);
-  const data = new Date(dia);
-  data.setHours(horas, minutos, 0, 0);
-  return data;
+  const diaBrasilia = new Date(dia.getTime() + OFFSET_BRASILIA_MS);
+  const utcMs =
+    Date.UTC(diaBrasilia.getUTCFullYear(), diaBrasilia.getUTCMonth(), diaBrasilia.getUTCDate(), horas, minutos) -
+    OFFSET_BRASILIA_MS;
+  return new Date(utcMs);
+}
+
+/**
+ * tipo "fixo", quando o participante escolheu um horario na pagina de
+ * entrada (/{slug}/sala?h=HH:mm). O horario precisa estar na lista
+ * configurada - a URL nao pode inventar uma sessao. Se o horario de hoje
+ * ainda nao chegou mas a sessao de ontem nesse horario continua rolando
+ * (virada da meia-noite), vale a de ontem.
+ */
+export function getFixoSessionStartParaHorario(
+  horario: string,
+  horariosFixos: string[],
+  videoDurationSeconds: number,
+  now: Date = new Date(),
+): Date | null {
+  if (!horariosFixos.includes(horario)) return null;
+  const hoje = parseHorarioNoDia(horario, now);
+  if (!hoje) return null;
+  if (hoje.getTime() > now.getTime()) {
+    const ontem = new Date(hoje.getTime() - 24 * 60 * 60 * 1000);
+    if (!isSessaoEncerrada(getElapsedSeconds(ontem, now), videoDurationSeconds)) return ontem;
+  }
+  return hoje;
+}
+
+/** Valor de <input type="datetime-local"> interpretado como horario de Brasilia. */
+export function parseDatetimeLocalBrasilia(value: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value.trim());
+  if (!match) return null;
+  const [, ano, mes, dia, horas, minutos] = match.map(Number);
+  return new Date(Date.UTC(ano, mes - 1, dia, horas, minutos) - OFFSET_BRASILIA_MS);
+}
+
+/** Inverso de parseDatetimeLocalBrasilia, pra preencher o formulario do admin. */
+export function toDatetimeLocalBrasilia(date: Date | null): string {
+  if (!date) return "";
+  return new Date(date.getTime() + OFFSET_BRASILIA_MS).toISOString().slice(0, 16);
+}
+
+export function formatarDataHoraBrasilia(date: Date): string {
+  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: FUSO_BRASILIA }).format(
+    date,
+  );
 }
 
 /**

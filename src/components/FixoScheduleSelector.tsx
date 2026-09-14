@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatCountdown, parseHorarioNoDia } from "@/lib/scheduling";
+import { webinarPath } from "@/lib/linksAcesso";
 
 type FixoScheduleSelectorProps = {
   slug: string;
@@ -22,8 +23,10 @@ export function FixoScheduleSelector({ slug, titulo, horariosFixos, videoDuratio
     return () => window.clearInterval(id);
   }, []);
 
-  function entrar(target: Date) {
-    router.push(`/w/${slug}/sala?sessionStart=${encodeURIComponent(target.toISOString())}`);
+  // So o horario vai na URL: a sala valida contra a lista configurada e
+  // calcula a sessao no servidor.
+  function entrar(horario: string) {
+    router.push(webinarPath(slug, "sala", { h: horario }));
   }
 
   const horarios = horariosFixos
@@ -49,7 +52,7 @@ export function FixoScheduleSelector({ slug, titulo, horariosFixos, videoDuratio
                 key={horario}
                 type="button"
                 disabled={encerrado}
-                onClick={() => entrar(target)}
+                onClick={() => entrar(horario)}
                 className={`flex w-full items-center justify-between rounded border px-4 py-3 text-left transition ${
                   encerrado
                     ? "cursor-not-allowed border-gray-200 text-gray-400"

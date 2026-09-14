@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { webinarPath } from "@/lib/linksAcesso";
 import { duplicateWebinar } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +31,7 @@ export default async function WebinarsListPage() {
             <div>
               <p className="font-medium">{webinar.titulo}</p>
               <p className="text-sm text-gray-500">
-                /w/{webinar.slug} · {webinar.tipoAgendamento} · {webinar.ativo ? "ativo" : "inativo"}
+                {webinarPath(webinar.slug)} · {webinar.tipoAgendamento} · {webinar.ativo ? "ativo" : "inativo"}
               </p>
             </div>
             <div className="flex gap-4 text-sm">
@@ -40,7 +41,10 @@ export default async function WebinarsListPage() {
               <Link href={`/admin/webinars/${webinar.id}/preview`} className="text-gray-500 hover:text-gray-800">
                 Preview
               </Link>
-              <Link href={`/w/${webinar.slug}/sala`} target="_blank" className="text-gray-500 hover:text-gray-800">
+              <Link href={`/admin/webinars/${webinar.id}/links`} className="text-gray-500 hover:text-gray-800">
+                Links
+              </Link>
+              <Link href={webinarPath(webinar.slug)} target="_blank" className="text-gray-500 hover:text-gray-800">
                 Ver sala
               </Link>
               <Link href={`/admin/webinars/${webinar.id}/editar`} className="text-emerald-600 hover:text-emerald-700">
