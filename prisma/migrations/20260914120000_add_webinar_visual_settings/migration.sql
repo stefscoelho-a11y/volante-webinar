@@ -1,0 +1,6 @@
+ALTER TABLE "webinars"
+ADD COLUMN "tema_sala" TEXT NOT NULL DEFAULT 'hotwebinar',
+ADD COLUMN "cor_primaria" TEXT NOT NULL DEFAULT '#e11d48',
+ADD COLUMN "cor_fundo" TEXT NOT NULL DEFAULT '#fafaf8',
+ADD COLUMN "cor_texto" TEXT NOT NULL DEFAULT '#18181b',
+ADD COLUMN "fonte_sala" TEXT NOT NULL DEFAULT 'Inter';

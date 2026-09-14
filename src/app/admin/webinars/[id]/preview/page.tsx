@@ -46,6 +46,11 @@ export default async function PreviewPage({ params }: PreviewPageProps) {
         metaPixelId={webinar.metaPixelId}
         audienciaFakeMin={webinar.audienciaFakeMin}
         audienciaFakeMax={webinar.audienciaFakeMax}
+        temaSala={webinar.temaSala}
+        corPrimaria={webinar.corPrimaria}
+        corFundo={webinar.corFundo}
+        corTexto={webinar.corTexto}
+        fonteSala={webinar.fonteSala}
         chatMessages={webinar.chatMessages.map((message) => ({
           id: message.id,
           timestampSegundos: message.timestampSegundos,

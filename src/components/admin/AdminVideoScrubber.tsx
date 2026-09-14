@@ -39,14 +39,17 @@ type AdminVideoScrubberProps = {
 export function AdminVideoScrubber({ videoId, onTimeUpdate }: AdminVideoScrubberProps) {
   const playerRef = useRef<YouTubePlayer | null>(null);
   const onTimeUpdateRef = useRef(onTimeUpdate);
-  onTimeUpdateRef.current = onTimeUpdate;
+
+  useEffect(() => {
+    onTimeUpdateRef.current = onTimeUpdate;
+  }, [onTimeUpdate]);
 
   useEffect(() => {
     let destroyed = false;
 
     loadYouTubeApiOnce().then(() => {
       if (destroyed) return;
-      const player = new window.YT.Player("admin-scrubber-target", {
+      new window.YT.Player("admin-scrubber-target", {
         videoId,
         playerVars: { controls: 1, modestbranding: 1, rel: 0 },
         events: {
@@ -67,7 +70,6 @@ export function AdminVideoScrubber({ videoId, onTimeUpdate }: AdminVideoScrubber
       window.clearInterval(poll);
       playerRef.current?.destroy();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoId]);
 
   return (

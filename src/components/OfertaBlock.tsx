@@ -53,31 +53,31 @@ export function OfertaBlock({
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-8">
-      <div className="flex flex-col items-center gap-3 rounded-2xl border border-gray-200 bg-white p-6 text-center">
+    <div className="mx-auto w-full max-w-3xl px-3 py-6 sm:px-2 sm:py-8">
+      <div className="room-surface flex flex-col items-center gap-3 rounded-2xl border p-6 text-center shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
         {ofertaImagemUrl && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={ofertaImagemUrl}
-            alt=""
+            alt={ofertaTitulo ? `Imagem da oferta ${ofertaTitulo}` : "Imagem da oferta do webinar"}
             className="max-h-56 w-auto rounded-lg object-cover"
           />
         )}
 
         {ofertaNome && (
-          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600">{ofertaNome}</p>
+          <p className="room-accent-text text-xs font-semibold uppercase tracking-wide">{ofertaNome}</p>
         )}
 
-        {ofertaTitulo && <h2 className="text-xl font-bold text-gray-900">{ofertaTitulo}</h2>}
+        {ofertaTitulo && <h2 className="text-xl font-bold">{ofertaTitulo}</h2>}
 
-        {ofertaDescricao && <p className="text-sm font-medium text-amber-600">{ofertaDescricao}</p>}
+        {ofertaDescricao && <p className="room-accent-text text-sm font-medium">{ofertaDescricao}</p>}
 
         {(precoOriginal != null || precoOferta != null) && (
           <p className="text-base">
             {precoOriginal != null && (
-              <span className="mr-2 text-gray-500 line-through">{formatBRL(precoOriginal)}</span>
+              <span className="room-muted mr-2 line-through">{formatBRL(precoOriginal)}</span>
             )}
-            {precoOferta != null && <span className="font-semibold text-emerald-600">{formatBRL(precoOferta)}</span>}
+            {precoOferta != null && <span className="room-accent-text font-semibold">{formatBRL(precoOferta)}</span>}
           </p>
         )}
 
@@ -86,7 +86,7 @@ export function OfertaBlock({
           target="_blank"
           rel="noopener noreferrer"
           onClick={handleClick}
-          className="w-full max-w-sm animate-pulse rounded-full bg-emerald-500 px-8 py-3 text-center text-base font-semibold text-neutral-950 shadow-lg shadow-emerald-500/30 transition hover:animate-none hover:bg-emerald-400"
+          className="room-accent-bg room-accent-ring w-full max-w-sm rounded-lg px-8 py-3 text-center text-base font-semibold transition duration-200 hover:-translate-y-0.5 hover:brightness-95 active:translate-y-0"
         >
           {ctaTexto}
         </a>
@@ -95,7 +95,7 @@ export function OfertaBlock({
           // suppressHydrationWarning: e um relogio ao vivo - o segundo
           // calculado no servidor e no cliente pode divergir por ~1s
           // (latencia de rede), o que e esperado e nao um bug de verdade.
-          <p className="text-[11px] font-medium text-red-600" suppressHydrationWarning>
+          <p className="room-accent-text text-[11px] font-medium" suppressHydrationWarning>
             Oferta expira em {formatCountdown(countdownRestante)}
           </p>
         )}

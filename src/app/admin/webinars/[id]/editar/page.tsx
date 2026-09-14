@@ -7,7 +7,7 @@ import { updateWebinar } from "../../actions";
 
 export const dynamic = "force-dynamic";
 
-const STEP_KEYS: WebinarStepKey[] = ["inicio", "agendamento", "oferta", "audiencia", "integracoes"];
+const STEP_KEYS: WebinarStepKey[] = ["inicio", "agendamento", "visual", "oferta", "audiencia", "integracoes"];
 
 type EditarWebinarPageProps = {
   params: Promise<{ id: string }>;
@@ -58,6 +58,11 @@ export default async function EditarWebinarPage({ params, searchParams }: Editar
           metaPixelId: webinar.metaPixelId ?? "",
           audienciaFakeMin: webinar.audienciaFakeMin,
           audienciaFakeMax: webinar.audienciaFakeMax,
+          temaSala: webinar.temaSala as "hotwebinar" | "youtube",
+          corPrimaria: webinar.corPrimaria,
+          corFundo: webinar.corFundo,
+          corTexto: webinar.corTexto,
+          fonteSala: webinar.fonteSala as "Inter" | "Roboto" | "Montserrat" | "Open Sans",
         }}
       />
     </div>

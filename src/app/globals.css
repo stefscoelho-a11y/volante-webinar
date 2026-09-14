@@ -18,5 +18,82 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+button,
+a,
+input,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+.webinar-room {
+  --room-accent: #e11d48;
+  --room-accent-contrast: #ffffff;
+  --room-background: #fafaf8;
+  --room-foreground: #18181b;
+  --room-surface: color-mix(in srgb, var(--room-background) 8%, white);
+  --room-border: color-mix(in srgb, var(--room-foreground) 13%, transparent);
+  --room-muted: color-mix(in srgb, var(--room-foreground) 58%, transparent);
+  min-height: 100dvh;
+  background: var(--room-background);
+  color: var(--room-foreground);
+}
+
+.webinar-room[data-room-font="Inter"] {
+  font-family: var(--font-inter), sans-serif;
+}
+
+.webinar-room[data-room-font="Roboto"] {
+  font-family: var(--font-roboto), sans-serif;
+}
+
+.webinar-room[data-room-font="Montserrat"] {
+  font-family: var(--font-montserrat), sans-serif;
+}
+
+.webinar-room[data-room-font="Open Sans"] {
+  font-family: var(--font-open-sans), sans-serif;
+}
+
+.room-surface {
+  background: var(--room-surface);
+  border-color: var(--room-border);
+}
+
+.room-muted {
+  color: var(--room-muted);
+}
+
+.room-accent-bg {
+  background: var(--room-accent);
+  color: var(--room-accent-contrast);
+}
+
+.room-accent-text {
+  color: var(--room-accent);
+}
+
+.room-accent-ring {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--room-accent) 22%, transparent);
+}
+
+.room-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--room-foreground) 18%, transparent) transparent;
+}
+
+.room-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.room-scrollbar::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--room-foreground) 18%, transparent);
 }

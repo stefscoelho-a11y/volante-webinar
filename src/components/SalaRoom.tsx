@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { useElapsedSeconds } from "@/hooks/useElapsedSeconds";
 import { formatCountdown, isSessaoEncerrada } from "@/lib/scheduling";
 import { getFakeViewerCount } from "@/lib/fakeViewers";
@@ -8,6 +8,13 @@ import { SalaVideo } from "./SalaVideo";
 import { ChatPanel, type ChatMessageData } from "./ChatPanel";
 import { OfertaBlock } from "./OfertaBlock";
 import { MetaPixel } from "./MetaPixel";
+import {
+  getContrastColor,
+  parseFonteSala,
+  parseHexColor,
+  parseTemaSala,
+  VISUAL_DEFAULTS,
+} from "@/lib/webinarVisual";
 
 type SalaRoomProps = {
   webinarId: string;
@@ -32,6 +39,11 @@ type SalaRoomProps = {
   audienciaFakeMin: number | null;
   audienciaFakeMax: number | null;
   chatMessages: ChatMessageData[];
+  temaSala: string;
+  corPrimaria: string;
+  corFundo: string;
+  corTexto: string;
+  fonteSala: string;
   isReplay?: boolean;
 };
 
@@ -58,6 +70,11 @@ export function SalaRoom({
   audienciaFakeMin,
   audienciaFakeMax,
   chatMessages,
+  temaSala,
+  corPrimaria,
+  corFundo,
+  corTexto,
+  fonteSala,
   isReplay = false,
 }: SalaRoomProps) {
   const [sessionStart] = useState(() => new Date(sessionStartIso));
@@ -88,6 +105,17 @@ export function SalaRoom({
   const aindaNaoComecou = !encerrado && elapsedSeconds < 0;
 
   const viewerCount = getFakeViewerCount(webinarId, Math.max(0, elapsedSeconds), audienciaFakeMin, audienciaFakeMax);
+  const tema = parseTemaSala(temaSala);
+  const fonte = parseFonteSala(fonteSala);
+  const accent = parseHexColor(corPrimaria, VISUAL_DEFAULTS.corPrimaria);
+  const background = parseHexColor(corFundo, VISUAL_DEFAULTS.corFundo);
+  const foreground = parseHexColor(corTexto, VISUAL_DEFAULTS.corTexto);
+  const visualStyle = {
+    "--room-accent": accent,
+    "--room-accent-contrast": getContrastColor(accent),
+    "--room-background": background,
+    "--room-foreground": foreground,
+  } as CSSProperties;
 
   const pixel = metaPixelId ? <MetaPixel pixelId={metaPixelId} /> : null;
 
@@ -95,7 +123,7 @@ export function SalaRoom({
     return (
       <>
         {pixel}
-        <div className="flex min-h-screen items-center justify-center bg-gray-50 p-6 text-center text-gray-900">
+        <div className="webinar-room flex items-center justify-center p-6 text-center" data-room-font={fonte} style={visualStyle}>
           <div>
             <h1 className="text-xl font-semibold">Este webinario ja encerrou</h1>
             <p className="mt-2 text-gray-500">Fique de olho no proximo horario disponivel.</p>
@@ -109,11 +137,11 @@ export function SalaRoom({
     return (
       <>
         {pixel}
-        <div className="flex min-h-screen items-center justify-center bg-gray-50 p-6 text-center text-gray-900">
+        <div className="webinar-room flex items-center justify-center p-6 text-center" data-room-font={fonte} style={visualStyle}>
           <div>
             <h1 className="text-xl font-semibold">{titulo}</h1>
             <p className="mt-4 text-sm text-gray-500">A sala abre em</p>
-            <p className="mt-1 text-3xl font-bold tabular-nums text-emerald-600" suppressHydrationWarning>
+            <p className="room-accent-text mt-1 text-3xl font-bold tabular-nums" suppressHydrationWarning>
               {formatCountdown(-elapsedSeconds)}
             </p>
           </div>
@@ -125,57 +153,73 @@ export function SalaRoom({
   return (
     <>
       {pixel}
-      <div className="min-h-screen bg-gray-50 text-gray-900">
-        <header className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-white/80 px-4 py-3">
-          <h1 className="text-base font-semibold sm:text-lg">{titulo}</h1>
-          <div className="flex items-center gap-3 text-xs sm:text-sm">
-            {isReplay ? (
-              <span className="flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 font-semibold text-gray-600">
-                <span className="h-1.5 w-1.5 rounded-full bg-gray-400" />
-                REPLAY
-              </span>
-            ) : (
-              <span className="flex items-center gap-1.5 rounded-full bg-red-500/10 px-2.5 py-1 font-semibold text-red-600">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-500" />
-                </span>
-                AO VIVO
-              </span>
-            )}
-            <span className="flex items-center gap-1.5 text-gray-500">
-              <IconEye />
-              {viewerCount}
-            </span>
-          </div>
-        </header>
-        <main className="mx-auto flex w-full max-w-7xl flex-col gap-4 p-4 lg:flex-row">
-          <div className="flex-1">
+      <div className="webinar-room flex flex-col" data-theme={tema} data-room-font={fonte} style={visualStyle}>
+        {tema === "hotwebinar" && (
+          <header className="mx-auto hidden w-full max-w-[1600px] px-3 pb-3 pt-4 sm:block sm:px-5 sm:pt-5">
+            <h1 className="text-balance text-xl font-bold tracking-[-0.025em] sm:text-2xl lg:text-[1.75rem]">{titulo}</h1>
+          </header>
+        )}
+
+        <main
+          className={`mx-auto grid w-full max-w-[1600px] grid-cols-1 gap-3 px-0 pb-5 sm:px-5 lg:grid-cols-[minmax(0,1fr)_clamp(19rem,29vw,27rem)] ${
+            tema === "youtube" ? "pt-3 sm:pt-5" : ""
+          }`}
+        >
+          <section className="min-w-0">
             <SalaVideo
               videoId={videoId}
               sessionStart={sessionStart}
               sincronizarComHorario={sincronizarVideoComHorario}
+              tema={tema}
+              videoDurationSeconds={videoDurationSeconds}
+              statusLabel={isReplay ? "Replay" : "Ao vivo"}
+              viewerCount={viewerCount}
               onVideoTimeChange={setVideoElapsedSeconds}
             />
-          </div>
-          <div className="w-full lg:w-80 lg:shrink-0">
-            <ChatPanel messages={chatMessages} elapsedSeconds={elapsedParaConteudo} />
+
+            {tema === "youtube" && (
+              <div className="px-3 pb-1 pt-4 sm:px-2 sm:pt-5">
+                <h1 className="text-balance text-xl font-bold tracking-[-0.025em] sm:text-2xl">{titulo}</h1>
+                <div className="room-muted mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs sm:text-sm">
+                  <span className="room-accent-text font-semibold">{isReplay ? "Replay" : "Ao vivo"}</span>
+                  <span aria-hidden="true" className="opacity-40">|</span>
+                  <span className="flex items-center gap-1.5 tabular-nums"><IconEye /> {viewerCount.toLocaleString("pt-BR")} assistindo</span>
+                </div>
+              </div>
+            )}
+
+            <OfertaBlock
+              ctaTexto={ctaTexto}
+              ctaLink={ctaLink}
+              pitchTimestampSeconds={pitchTimestampSeconds}
+              ctaDesaparecerSegundos={ctaDesaparecerSegundos}
+              elapsedSeconds={elapsedParaConteudo}
+              ofertaNome={ofertaNome}
+              ofertaTitulo={ofertaTitulo}
+              ofertaImagemUrl={ofertaImagemUrl}
+              ofertaDescricao={ofertaDescricao}
+              precoOriginal={precoOriginal}
+              precoOferta={precoOferta}
+              ctaCountdownMinutos={ctaCountdownMinutos}
+            />
+          </section>
+
+          <div className={`px-3 sm:px-0 lg:min-h-0 ${tema === "hotwebinar" ? "min-h-[52rem]" : "min-h-[24rem]"}`}>
+            <ChatPanel
+              messages={chatMessages}
+              elapsedSeconds={elapsedParaConteudo}
+              tema={tema}
+              viewerCount={viewerCount}
+            />
           </div>
         </main>
-        <OfertaBlock
-          ctaTexto={ctaTexto}
-          ctaLink={ctaLink}
-          pitchTimestampSeconds={pitchTimestampSeconds}
-          ctaDesaparecerSegundos={ctaDesaparecerSegundos}
-          elapsedSeconds={elapsedParaConteudo}
-          ofertaNome={ofertaNome}
-          ofertaTitulo={ofertaTitulo}
-          ofertaImagemUrl={ofertaImagemUrl}
-          ofertaDescricao={ofertaDescricao}
-          precoOriginal={precoOriginal}
-          precoOferta={precoOferta}
-          ctaCountdownMinutos={ctaCountdownMinutos}
-        />
+
+        {tema === "hotwebinar" && (
+          <footer className="room-muted mx-auto mt-auto flex w-full max-w-[1600px] justify-end gap-4 border-t px-5 py-3 text-[10px] uppercase tracking-wide" style={{ borderColor: "var(--room-border)" }}>
+            <span className="flex items-center gap-1"><IconShield /> Site seguro</span>
+            <span className="flex items-center gap-1"><IconLock /> Privacidade protegida</span>
+          </footer>
+        )}
       </div>
     </>
   );
@@ -186,6 +230,24 @@ function IconEye() {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
       <path d="M1.5 12s4-7 10.5-7 10.5 7 10.5 7-4 7-10.5 7-10.5-7-10.5-7Z" />
       <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function IconShield() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3 w-3 room-accent-text">
+      <path d="M12 3 5 6v5c0 4.7 2.8 8.3 7 10 4.2-1.7 7-5.3 7-10V6l-7-3Z" />
+      <path d="m9 12 2 2 4-4" />
+    </svg>
+  );
+}
+
+function IconLock() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3 w-3 room-accent-text">
+      <rect x="5" y="10" width="14" height="11" rx="2" />
+      <path d="M8 10V7a4 4 0 0 1 8 0v3" />
     </svg>
   );
 }

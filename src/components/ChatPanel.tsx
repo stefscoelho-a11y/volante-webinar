@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { TemaSala } from "@/lib/webinarVisual";
 
 export type ChatMessageData = {
   id: string;
@@ -13,6 +14,8 @@ export type ChatMessageData = {
 type ChatPanelProps = {
   messages: ChatMessageData[];
   elapsedSeconds: number;
+  tema: TemaSala;
+  viewerCount: number;
 };
 
 function getInitials(nome: string): string {
@@ -28,68 +31,110 @@ function getAvatarColor(nome: string): string {
   return `hsl(${hash % 360}, 60%, 45%)`;
 }
 
-export function ChatPanel({ messages, elapsedSeconds }: ChatPanelProps) {
-  // Guardamos so os IDs ja exibidos (nao o array inteiro) pra nunca duplicar
-  // mensagem, mesmo que o efeito rode de novo pro mesmo tick do relogio.
-  const [visibleIds, setVisibleIds] = useState<Set<string>>(() => new Set());
+export function ChatPanel({ messages, elapsedSeconds, tema, viewerCount }: ChatPanelProps) {
+  const [activeTab, setActiveTab] = useState<"chat" | "suporte">("chat");
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    // A cada tick do relogio compartilhado (useElapsedSeconds, no componente
-    // pai), comparamos o tempo decorrido com o timestamp de cada mensagem do
-    // roteiro. Se ja passou e a mensagem ainda nao apareceu, ela entra. Isso
-    // tambem resolve o "catch-up": se a pessoa entrar no meio do video, todas
-    // as mensagens anteriores ja aparecem de uma vez no primeiro tick.
-    setVisibleIds((prev) => {
-      let changed = false;
-      const next = new Set(prev);
-      for (const message of messages) {
-        if (message.timestampSegundos <= elapsedSeconds && !next.has(message.id)) {
-          next.add(message.id);
-          changed = true;
-        }
-      }
-      return changed ? next : prev;
-    });
-  }, [elapsedSeconds, messages]);
-
-  const visibleMessages = messages.filter((message) => visibleIds.has(message.id));
+  // Derivado do relogio compartilhado: quem entra no meio recebe o historico
+  // anterior, e o preview do admin pode voltar no tempo sem estado residual.
+  const visibleMessages = messages.filter((message) => message.timestampSegundos <= elapsedSeconds);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [visibleMessages.length]);
 
+  const isYouTube = tema === "youtube";
+
   return (
-    <div className="flex h-full max-h-[70vh] flex-col rounded-lg border border-gray-200 bg-white lg:max-h-none">
-      <div className="flex items-center gap-2 border-b border-gray-200 p-3 text-sm font-semibold text-gray-800">
-        <span className="h-2 w-2 rounded-full bg-emerald-500" />
-        Chat ao vivo
-      </div>
-      <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-3">
+    <aside
+      aria-label="Chat do webinar"
+      className={`room-surface flex h-full flex-col overflow-hidden border bg-white lg:min-h-0 ${
+        isYouTube ? "min-h-[24rem]" : "min-h-[52rem]"
+      } ${
+        isYouTube ? "rounded-xl" : "rounded-lg shadow-[0_2px_10px_rgba(15,23,42,0.06)]"
+      }`}
+    >
+      {isYouTube ? (
+        <div className="flex h-14 shrink-0 items-center justify-between border-b px-4" style={{ borderColor: "var(--room-border)" }}>
+          <div className="flex items-baseline gap-2">
+            <h2 className="text-base font-semibold tracking-tight">Chat ao vivo</h2>
+            <span className="room-muted text-xs tabular-nums">{viewerCount.toLocaleString("pt-BR")}</span>
+          </div>
+          <span aria-hidden="true" className="room-muted text-xl leading-none">⋮</span>
+        </div>
+      ) : (
+        <div className="m-2 grid h-10 shrink-0 grid-cols-2 rounded-md bg-slate-100 p-1 text-sm">
+          <button
+            type="button"
+            onClick={() => setActiveTab("chat")}
+            className={`rounded-[5px] font-medium transition ${
+              activeTab === "chat" ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            Chat
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("suporte")}
+            className={`rounded-[5px] font-medium transition ${
+              activeTab === "suporte" ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            Suporte
+          </button>
+        </div>
+      )}
+
+      {activeTab === "suporte" && !isYouTube ? (
+        <div className="flex flex-1 items-center justify-center p-8 text-center">
+          <div className="max-w-52">
+            <IconSupport />
+            <p className="mt-3 text-sm font-semibold">Precisa de ajuda?</p>
+            <p className="room-muted mt-1 text-xs leading-relaxed">Entre em contato com a equipe responsável por este webinar.</p>
+          </div>
+        </div>
+      ) : (
+      <div ref={scrollRef} className={`room-scrollbar flex-1 overflow-y-auto ${isYouTube ? "space-y-3 px-4 py-3" : "space-y-3 px-3 py-4"}`}>
         {visibleMessages.length === 0 && (
-          <p className="text-center text-xs text-gray-400">O chat vai comecar em instantes...</p>
+          <p className="room-muted py-8 text-center text-xs">O chat vai começar em instantes...</p>
         )}
         {visibleMessages.map((message) =>
           message.tipo === "sistema" ? (
-            <p key={message.id} className="text-center text-xs italic text-gray-500">
+            <p key={message.id} className="room-muted text-center text-xs italic">
               {message.texto}
             </p>
           ) : (
             <div key={message.id} className="flex items-start gap-2">
               <span
-                className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white"
+                className={`mt-0.5 flex shrink-0 items-center justify-center rounded-full font-semibold text-white ${
+                  isYouTube ? "h-7 w-7 text-[10px]" : "h-6 w-6 text-[9px]"
+                }`}
                 style={{ backgroundColor: getAvatarColor(message.nomeAutor) }}
               >
                 {getInitials(message.nomeAutor)}
               </span>
-              <p className="text-sm leading-snug">
-                <span className="font-semibold text-gray-900">{message.nomeAutor}</span>{" "}
-                <span className="text-gray-700">{message.texto}</span>
+              <p className={`${isYouTube ? "text-[13px]" : "text-sm"} leading-snug`}>
+                <span className={`${isYouTube ? "font-semibold" : "room-muted font-semibold"}`}>{message.nomeAutor}</span>{" "}
+                <span>{message.texto}</span>
               </p>
             </div>
           ),
         )}
       </div>
-    </div>
+      )}
+
+      <div className="room-muted flex min-h-14 shrink-0 items-center justify-center border-t px-4 text-center text-xs" style={{ borderColor: "var(--room-border)" }}>
+        Comentários desativados...
+      </div>
+    </aside>
+  );
+}
+
+function IconSupport() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} className="room-muted mx-auto h-8 w-8">
+      <path d="M4 13a8 8 0 0 1 16 0v4a2 2 0 0 1-2 2h-2v-6h4M4 13h4v6H6a2 2 0 0 1-2-2v-4Z" />
+      <path d="M12 21h3" />
+    </svg>
   );
 }

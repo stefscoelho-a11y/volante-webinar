@@ -24,6 +24,11 @@ type AdminPreviewProps = {
   metaPixelId: string | null;
   audienciaFakeMin: number | null;
   audienciaFakeMax: number | null;
+  temaSala: string;
+  corPrimaria: string;
+  corFundo: string;
+  corTexto: string;
+  fonteSala: string;
   chatMessages: ChatMessageData[];
 };
 
@@ -51,6 +56,11 @@ export function AdminPreview({
   metaPixelId,
   audienciaFakeMin,
   audienciaFakeMax,
+  temaSala,
+  corPrimaria,
+  corFundo,
+  corTexto,
+  fonteSala,
   chatMessages,
 }: AdminPreviewProps) {
   const [manualElapsed, setManualElapsed] = useState(0);
@@ -137,6 +147,11 @@ export function AdminPreview({
         metaPixelId={metaPixelId}
         audienciaFakeMin={audienciaFakeMin}
         audienciaFakeMax={audienciaFakeMax}
+        temaSala={temaSala}
+        corPrimaria={corPrimaria}
+        corFundo={corFundo}
+        corTexto={corTexto}
+        fonteSala={fonteSala}
         chatMessages={chatMessages}
       />
     </div>

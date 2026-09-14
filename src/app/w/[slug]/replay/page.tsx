@@ -56,6 +56,11 @@ export default async function ReplayPage({ params }: ReplayPageProps) {
       metaPixelId={webinar.metaPixelId}
       audienciaFakeMin={webinar.audienciaFakeMin}
       audienciaFakeMax={webinar.audienciaFakeMax}
+      temaSala={webinar.temaSala}
+      corPrimaria={webinar.corPrimaria}
+      corFundo={webinar.corFundo}
+      corTexto={webinar.corTexto}
+      fonteSala={webinar.fonteSala}
       isReplay
       chatMessages={webinar.chatMessages.map((message) => ({
         id: message.id,

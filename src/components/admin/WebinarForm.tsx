@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import type { RepeticaoAgendado, TipoAgendamento } from "@/lib/scheduling";
+import { FONTES_SALA, VISUAL_DEFAULTS, getContrastColor, type FonteSala, type TemaSala } from "@/lib/webinarVisual";
 import {
   WebinarStepper,
   IconInicio,
   IconAgendamento,
+  IconVisual,
   IconOferta,
   IconAudiencia,
   IconIntegracoes,
@@ -44,6 +46,11 @@ type WebinarFormValues = {
   agendadoDataHoraInicio: string;
   agendadoDataHoraFim: string;
   agendadoRepeticao: RepeticaoAgendado;
+  temaSala: TemaSala;
+  corPrimaria: string;
+  corFundo: string;
+  corTexto: string;
+  fonteSala: FonteSala;
 };
 
 type WebinarFormProps = {
@@ -84,6 +91,7 @@ const DEFAULTS: WebinarFormValues = {
   agendadoDataHoraInicio: "",
   agendadoDataHoraFim: "",
   agendadoRepeticao: "nenhuma",
+  ...VISUAL_DEFAULTS,
 };
 
 const inputClass =
@@ -92,6 +100,7 @@ const inputClass =
 const FORM_STEPS: { key: WebinarStepKey; label: string; icon: typeof IconInicio }[] = [
   { key: "inicio", label: "Início", icon: IconInicio },
   { key: "agendamento", label: "Agendamento", icon: IconAgendamento },
+  { key: "visual", label: "Visual", icon: IconVisual },
   { key: "oferta", label: "Oferta", icon: IconOferta },
   { key: "audiencia", label: "Audiência", icon: IconAudiencia },
   { key: "integracoes", label: "Integrações", icon: IconIntegracoes },
@@ -102,6 +111,11 @@ export function WebinarForm({ action, initialValues, submitLabel, webinarId, ini
   const [tipoAgendamento, setTipoAgendamento] = useState<TipoAgendamento>(values.tipoAgendamento);
   const [repeticao, setRepeticao] = useState<RepeticaoAgendado>(values.agendadoRepeticao);
   const [step, setStep] = useState<WebinarStepKey>(initialStep ?? "inicio");
+  const [temaSala, setTemaSala] = useState<TemaSala>(values.temaSala);
+  const [corPrimaria, setCorPrimaria] = useState(values.corPrimaria);
+  const [corFundo, setCorFundo] = useState(values.corFundo);
+  const [corTexto, setCorTexto] = useState(values.corTexto);
+  const [fonteSala, setFonteSala] = useState<FonteSala>(values.fonteSala);
 
   const stepIndex = FORM_STEPS.findIndex((s) => s.key === step);
   const isLastStep = stepIndex === FORM_STEPS.length - 1;
@@ -281,6 +295,55 @@ export function WebinarForm({ action, initialValues, submitLabel, webinarId, ini
                 />
               </Field>
             )}
+          </Section>
+        </div>
+
+        <div hidden={step !== "visual"}>
+          <Section title="Visual da sala" description="Escolha a estrutura e personalize a identidade visual exibida para o público.">
+            <fieldset>
+              <legend className="mb-2 text-sm text-gray-500">Formato da sala</legend>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <ThemeOption
+                  value="hotwebinar"
+                  checked={temaSala === "hotwebinar"}
+                  onChange={() => setTemaSala("hotwebinar")}
+                  title="Padrão Hotwebinar"
+                  description="Título no topo, player dominante e chat com abas."
+                />
+                <ThemeOption
+                  value="youtube"
+                  checked={temaSala === "youtube"}
+                  onChange={() => setTemaSala("youtube")}
+                  title="Estilo YouTube"
+                  description="Controles familiares, título abaixo e chat contínuo."
+                />
+              </div>
+            </fieldset>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <ColorField label="Cor principal" name="corPrimaria" value={corPrimaria} onChange={setCorPrimaria} />
+              <ColorField label="Cor de fundo" name="corFundo" value={corFundo} onChange={setCorFundo} />
+              <ColorField label="Cor do texto" name="corTexto" value={corTexto} onChange={setCorTexto} />
+            </div>
+
+            <Field label="Fonte do Google Fonts">
+              <select
+                name="fonteSala"
+                value={fonteSala}
+                onChange={(event) => setFonteSala(event.target.value as FonteSala)}
+                className={inputClass}
+              >
+                {FONTES_SALA.map((font) => <option key={font} value={font}>{font}</option>)}
+              </select>
+            </Field>
+
+            <VisualPreview
+              tema={temaSala}
+              corPrimaria={corPrimaria}
+              corFundo={corFundo}
+              corTexto={corTexto}
+              fonte={fonteSala}
+            />
           </Section>
         </div>
 
@@ -474,11 +537,141 @@ export function WebinarForm({ action, initialValues, submitLabel, webinarId, ini
   );
 }
 
+function ThemeOption({
+  value,
+  checked,
+  onChange,
+  title,
+  description,
+}: {
+  value: TemaSala;
+  checked: boolean;
+  onChange: () => void;
+  title: string;
+  description: string;
+}) {
+  return (
+    <label
+      className={`group cursor-pointer rounded-xl border p-3 transition duration-200 ${
+        checked
+          ? "border-emerald-500 bg-emerald-50 shadow-[0_0_0_2px_rgba(16,185,129,0.12)]"
+          : "border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-white"
+      }`}
+    >
+      <input type="radio" name="temaSala" value={value} checked={checked} onChange={onChange} className="sr-only" />
+      <div className={`mb-3 overflow-hidden rounded-lg border border-gray-200 bg-white ${value === "youtube" ? "p-1.5" : "p-2"}`}>
+        <div className="grid aspect-[2.1/1] grid-cols-[1fr_32%] gap-1.5">
+          <div className="relative rounded bg-slate-800">
+            <span className="absolute left-1 top-1 h-1.5 w-7 rounded-sm bg-rose-500" />
+            {value === "youtube" && <span className="absolute inset-x-1 bottom-1 h-0.5 rounded bg-rose-500" />}
+          </div>
+          <div className="rounded border border-gray-200 bg-gray-50">
+            <div className="m-1 h-1.5 rounded bg-gray-200" />
+          </div>
+        </div>
+        {value === "youtube" && <div className="mt-1.5 h-2 w-2/3 rounded bg-gray-200" />}
+      </div>
+      <span className="block text-sm font-semibold text-gray-900">{title}</span>
+      <span className="mt-1 block text-xs leading-relaxed text-gray-500">{description}</span>
+    </label>
+  );
+}
+
+function ColorField({
+  label,
+  name,
+  value,
+  onChange,
+}: {
+  label: string;
+  name: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const pickerValue = /^#[0-9a-fA-F]{6}$/.test(value) ? value : "#000000";
+
+  return (
+    <Field label={label}>
+      <div className="flex overflow-hidden rounded-lg border border-gray-300 bg-gray-100 focus-within:border-emerald-500">
+        <input
+          type="color"
+          value={pickerValue}
+          onChange={(event) => onChange(event.target.value)}
+          aria-label={`Selecionar ${label.toLowerCase()}`}
+          className="h-10 w-12 cursor-pointer border-0 bg-transparent p-1"
+        />
+        <input
+          name={name}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          pattern="#[0-9a-fA-F]{6}"
+          maxLength={7}
+          className="min-w-0 flex-1 border-l border-gray-300 bg-transparent px-2 text-xs font-medium uppercase outline-none"
+        />
+      </div>
+    </Field>
+  );
+}
+
+function VisualPreview({
+  tema,
+  corPrimaria,
+  corFundo,
+  corTexto,
+  fonte,
+}: {
+  tema: TemaSala;
+  corPrimaria: string;
+  corFundo: string;
+  corTexto: string;
+  fonte: FonteSala;
+}) {
+  const accent = /^#[0-9a-fA-F]{6}$/.test(corPrimaria) ? corPrimaria : VISUAL_DEFAULTS.corPrimaria;
+  const background = /^#[0-9a-fA-F]{6}$/.test(corFundo) ? corFundo : VISUAL_DEFAULTS.corFundo;
+  const foreground = /^#[0-9a-fA-F]{6}$/.test(corTexto) ? corTexto : VISUAL_DEFAULTS.corTexto;
+  const style = {
+    "--room-accent": accent,
+    "--room-accent-contrast": getContrastColor(accent),
+    "--room-background": background,
+    "--room-foreground": foreground,
+  } as CSSProperties;
+
+  return (
+    <div>
+      <p className="mb-2 text-sm text-gray-500">Prévia rápida</p>
+      <div
+        className="webinar-room min-h-0 overflow-hidden rounded-xl border border-gray-200 p-3 shadow-sm"
+        data-room-font={fonte}
+        data-theme={tema}
+        style={style}
+      >
+        {tema === "hotwebinar" && <p className="mb-2 text-sm font-bold">Título do seu webinar</p>}
+        <div className="grid grid-cols-[1fr_34%] gap-2">
+          <div>
+            <div className="relative aspect-video overflow-hidden rounded-md bg-[#15171c]">
+              <span className="room-accent-bg absolute left-1.5 top-1.5 rounded px-2 py-1 text-[8px] font-semibold">Replay</span>
+              {tema === "youtube" && <span className="room-accent-bg absolute inset-x-2 bottom-2 h-0.5 rounded-full" />}
+            </div>
+            {tema === "youtube" && <p className="mt-2 text-sm font-bold">Título do seu webinar</p>}
+          </div>
+          <div className="room-surface overflow-hidden rounded-md border">
+            <div className="border-b p-2 text-[8px] font-semibold" style={{ borderColor: "var(--room-border)" }}>Chat ao vivo</div>
+            <div className="space-y-1.5 p-2">
+              {["70%", "88%", "58%"].map((width) => <span key={width} className="block h-1 rounded bg-current opacity-15" style={{ width }} />)}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function UrlAmigavelField({ defaultValue }: { defaultValue: string }) {
   const [origin, setOrigin] = useState("");
 
   useEffect(() => {
-    setOrigin(window.location.origin);
+    const timeout = window.setTimeout(() => setOrigin(window.location.origin), 0);
+    return () => window.clearTimeout(timeout);
   }, []);
 
   return (

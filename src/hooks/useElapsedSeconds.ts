@@ -16,11 +16,14 @@ export function useElapsedSeconds(sessionStart: Date): number {
   const [elapsed, setElapsed] = useState(() => getElapsedSeconds(sessionStart));
 
   useEffect(() => {
-    setElapsed(getElapsedSeconds(sessionStart));
+    const initialTick = window.setTimeout(() => setElapsed(getElapsedSeconds(sessionStart)), 0);
     const id = window.setInterval(() => {
       setElapsed(getElapsedSeconds(sessionStart));
     }, TICK_MS);
-    return () => window.clearInterval(id);
+    return () => {
+      window.clearTimeout(initialTick);
+      window.clearInterval(id);
+    };
   }, [sessionStart]);
 
   return elapsed;

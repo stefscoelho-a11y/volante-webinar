@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getElapsedSeconds } from "@/lib/scheduling";
 import type { YouTubePlayer } from "@/lib/youtubePlayerTypes";
+import type { TemaSala } from "@/lib/webinarVisual";
 
 /**
  * Comportamento ao pausar (ver instrucoes do projeto):
@@ -52,13 +53,26 @@ type SalaVideoProps = {
   // sempre comeca do zero pra cada espectador - o agendamento (aguardando/
   // encerrado) continua valendo do mesmo jeito, so o seek muda.
   sincronizarComHorario: boolean;
+  tema: TemaSala;
+  videoDurationSeconds: number;
+  statusLabel: string;
+  viewerCount: number;
   // Reporta o tempo atual do player pro componente pai a cada tick. Usado
   // pra decidir quando o chat/CTA devem aparecer quando a sincronizacao
   // esta desligada (nesse caso eles seguem o tempo do video, nao o relogio).
   onVideoTimeChange: (seconds: number) => void;
 };
 
-export function SalaVideo({ videoId, sessionStart, sincronizarComHorario, onVideoTimeChange }: SalaVideoProps) {
+export function SalaVideo({
+  videoId,
+  sessionStart,
+  sincronizarComHorario,
+  tema,
+  videoDurationSeconds,
+  statusLabel,
+  viewerCount,
+  onVideoTimeChange,
+}: SalaVideoProps) {
   // Navegadores bloqueiam autoplay COM SOM sem gesto previo do usuario.
   // Pra garantir que o autoplay sempre funcione (essencial pro efeito de
   // "ao vivo"), o player sempre comeca mudo (mute:1) e mostramos um prompt
@@ -67,9 +81,14 @@ export function SalaVideo({ videoId, sessionStart, sincronizarComHorario, onVide
   const [muted, setMuted] = useState(true);
   const [volume, setVolume] = useState(100);
   const [showUnmutePrompt, setShowUnmutePrompt] = useState(true);
+  const [currentTime, setCurrentTime] = useState(0);
   const playerRef = useRef<YouTubePlayer | null>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
   const onVideoTimeChangeRef = useRef(onVideoTimeChange);
-  onVideoTimeChangeRef.current = onVideoTimeChange;
+
+  useEffect(() => {
+    onVideoTimeChangeRef.current = onVideoTimeChange;
+  }, [onVideoTimeChange]);
 
   useEffect(() => {
     let destroyed = false;
@@ -77,7 +96,7 @@ export function SalaVideo({ videoId, sessionStart, sincronizarComHorario, onVide
     loadYouTubeApiOnce().then(() => {
       if (destroyed) return;
 
-      const player = new window.YT.Player("youtube-player-target", {
+      new window.YT.Player("youtube-player-target", {
         videoId,
         playerVars: {
           autoplay: 1,
@@ -126,7 +145,10 @@ export function SalaVideo({ videoId, sessionStart, sincronizarComHorario, onVide
 
     const poll = window.setInterval(() => {
       const current = playerRef.current?.getCurrentTime();
-      if (typeof current === "number") onVideoTimeChangeRef.current(current);
+      if (typeof current === "number") {
+        setCurrentTime(current);
+        onVideoTimeChangeRef.current(current);
+      }
     }, VIDEO_TIME_POLL_MS);
 
     return () => {
@@ -165,8 +187,21 @@ export function SalaVideo({ videoId, sessionStart, sincronizarComHorario, onVide
     setShowUnmutePrompt(false);
   }
 
+  async function toggleFullscreen() {
+    const frame = frameRef.current;
+    if (!frame) return;
+    if (document.fullscreenElement) await document.exitFullscreen();
+    else await frame.requestFullscreen();
+  }
+
+  const progress = Math.min(100, Math.max(0, (currentTime / videoDurationSeconds) * 100));
+  const isYouTube = tema === "youtube";
+
   return (
-    <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black">
+    <div
+      ref={frameRef}
+      className={`group relative aspect-video w-full overflow-hidden bg-black ${isYouTube ? "rounded-xl" : "rounded-lg"}`}
+    >
       {/* pointer-events-none bloqueia qualquer clique/toque/scroll no
           iframe do YouTube (inclusive botao direito), impedindo o
           espectador de interagir com o player por fora do nosso codigo */}
@@ -174,26 +209,54 @@ export function SalaVideo({ videoId, sessionStart, sincronizarComHorario, onVide
         <div id="youtube-player-target" className="h-full w-full" />
       </div>
 
+      <div className="pointer-events-none absolute left-2 top-2 z-20 flex overflow-hidden rounded-md text-[11px] font-semibold shadow-sm sm:left-3 sm:top-3 sm:text-xs">
+        <span className="room-accent-bg flex items-center gap-1.5 px-2.5 py-2 sm:px-3">
+          <IconBroadcast />
+          {statusLabel}
+        </span>
+        <span className="flex items-center gap-1.5 bg-white/95 px-2.5 py-2 text-slate-800 sm:px-3">
+          <IconEye />
+          {viewerCount.toLocaleString("pt-BR")}
+        </span>
+      </div>
+
       {showUnmutePrompt && (
         <button
           type="button"
           onClick={toggleMute}
-          className="pointer-events-auto absolute inset-0 flex items-center justify-center bg-black/40 transition hover:bg-black/50"
+          className="pointer-events-auto absolute inset-0 z-10 flex items-center justify-center bg-black/35 transition duration-300 hover:bg-black/45"
         >
-          <span className="flex items-center gap-2 rounded-full bg-white/95 px-4 py-2 text-sm font-medium text-gray-900 shadow-lg">
-            <IconVolumeMuted /> Clique para ativar o som
+          <span className="flex min-h-36 w-52 flex-col items-center justify-center gap-4 rounded-[1.25rem] border border-white/70 bg-[#070b13]/95 px-5 py-5 text-center text-white shadow-2xl sm:min-h-44 sm:w-76 sm:px-6">
+            <span className="text-sm font-semibold sm:text-base">Sua aula já começou</span>
+            <IconVolumeMuted className="h-12 w-12 sm:h-14 sm:w-14" />
+            <span className="text-sm font-semibold sm:text-base">Clique para ouvir</span>
           </span>
         </button>
       )}
 
-      <div className="pointer-events-auto absolute bottom-3 right-3 flex items-center gap-2 rounded-full bg-black/60 px-3 py-2 backdrop-blur-sm">
+      {isYouTube && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/90 via-black/35 to-transparent" />
+      )}
+
+      <div
+        className={`pointer-events-auto absolute z-20 flex items-center ${
+          isYouTube
+            ? "inset-x-3 bottom-2 gap-3 text-white sm:inset-x-4 sm:bottom-3"
+            : "bottom-3 right-3 gap-2 rounded-full bg-black/65 px-3 py-2 text-white backdrop-blur-sm"
+        }`}
+      >
+        {isYouTube && (
+          <div className="absolute inset-x-0 -top-3 h-1 overflow-hidden rounded-full bg-white/35">
+            <span className="block h-full room-accent-bg" style={{ width: `${progress}%` }} />
+          </div>
+        )}
         <button
           type="button"
           onClick={toggleMute}
           aria-label={muted ? "Ativar som" : "Silenciar"}
-          className="flex h-6 w-6 items-center justify-center text-gray-900 hover:text-white"
+          className="flex h-7 w-7 items-center justify-center text-white transition hover:scale-105"
         >
-          {muted || volume === 0 ? <IconVolumeMuted /> : <IconVolumeOn />}
+          {muted || volume === 0 ? <IconVolumeMuted className="h-5 w-5" /> : <IconVolumeOn />}
         </button>
         <input
           type="range"
@@ -201,12 +264,38 @@ export function SalaVideo({ videoId, sessionStart, sincronizarComHorario, onVide
           max={100}
           value={muted ? 0 : volume}
           onChange={(e) => handleVolumeChange(Number(e.target.value))}
-          className="h-1 w-20 accent-white"
+          className={`${isYouTube ? "hidden w-16 sm:block" : "w-20"} h-1 accent-white`}
           aria-label="Volume"
         />
+        {isYouTube && (
+          <>
+            <span className="text-[11px] font-medium tabular-nums sm:text-xs">
+              {formatPlayerTime(currentTime)} / {formatPlayerTime(videoDurationSeconds)}
+            </span>
+            <span className="flex-1" />
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              aria-label="Tela cheia"
+              className="flex h-7 w-7 items-center justify-center transition hover:scale-105"
+            >
+              <IconFullscreen />
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
+}
+
+function formatPlayerTime(seconds: number): string {
+  const total = Math.max(0, Math.floor(seconds));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const secs = total % 60;
+  return hours > 0
+    ? `${hours}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`
+    : `${minutes}:${String(secs).padStart(2, "0")}`;
 }
 
 function IconVolumeOn() {
@@ -218,11 +307,37 @@ function IconVolumeOn() {
   );
 }
 
-function IconVolumeMuted() {
+function IconVolumeMuted({ className = "h-5 w-5" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
       <path d="M4 9v6h4l5 5V4L8 9H4z" />
       <path d="M19.8 12l2.2-2.2-1.4-1.4L18.4 10.6l-2.2-2.2-1.4 1.4 2.2 2.2-2.2 2.2 1.4 1.4 2.2-2.2 2.2 2.2 1.4-1.4z" />
+    </svg>
+  );
+}
+
+function IconBroadcast() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+      <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" />
+      <path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M4.5 4.5a10.6 10.6 0 0 0 0 15M19.5 4.5a10.6 10.6 0 0 1 0 15" />
+    </svg>
+  );
+}
+
+function IconEye() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+      <path d="M1.5 12s4-7 10.5-7 10.5 7 10.5 7-4 7-10.5 7-10.5-7-10.5-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function IconFullscreen() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-5 w-5">
+      <path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" />
     </svg>
   );
 }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-export type WebinarStepKey = "inicio" | "agendamento" | "oferta" | "audiencia" | "integracoes" | "chat" | "preview";
+export type WebinarStepKey = "inicio" | "agendamento" | "visual" | "oferta" | "audiencia" | "integracoes" | "chat" | "preview";
 
 type IconComponent = (props: { className?: string }) => ReactNode;
 
@@ -30,6 +30,7 @@ function buildStepsAsLinks(webinarId: string): StepDef[] {
       icon: IconAgendamento,
       href: `/admin/webinars/${webinarId}/editar?step=agendamento`,
     },
+    { key: "visual", label: "Visual", icon: IconVisual, href: `/admin/webinars/${webinarId}/editar?step=visual` },
     { key: "oferta", label: "Oferta", icon: IconOferta, href: `/admin/webinars/${webinarId}/editar?step=oferta` },
     {
       key: "audiencia",
@@ -129,6 +130,17 @@ export function IconOferta({ className }: { className?: string }) {
       <rect x="3" y="9" width="18" height="12" rx="1.5" />
       <path d="M3 9h18M12 9v12" />
       <path d="M12 9c-2-3-6-3-6-.5C6 9.5 9 9 12 9s6 .5 6-.5c0-2.5-4-2.5-6 .5Z" />
+    </svg>
+  );
+}
+
+export function IconVisual({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={className}>
+      <path d="M12 3a9 9 0 1 0 0 18h1.2a1.8 1.8 0 0 0 .4-3.6l-.7-.2a1.6 1.6 0 0 1 .4-3.1H16a5 5 0 0 0 5-5c0-3.4-4-6.1-9-6.1Z" />
+      <circle cx="7.5" cy="10" r="1" fill="currentColor" stroke="none" />
+      <circle cx="10" cy="6.8" r="1" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="7" r="1" fill="currentColor" stroke="none" />
     </svg>
   );
 }

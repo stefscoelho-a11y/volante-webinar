@@ -32,7 +32,8 @@ export function WebinarLinksPanel({ slug }: WebinarLinksPanelProps) {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   useEffect(() => {
-    setOrigin(window.location.origin);
+    const timeout = window.setTimeout(() => setOrigin(window.location.origin), 0);
+    return () => window.clearTimeout(timeout);
   }, []);
 
   if (!slug) return null;

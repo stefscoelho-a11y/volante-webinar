@@ -43,6 +43,12 @@ model Webinar {
   // Faixa da audiencia fake exibida na sala - se nulos, usa uma faixa padrao
   audienciaFakeMin            Int?      @map("audiencia_fake_min")
   audienciaFakeMax            Int?      @map("audiencia_fake_max")
+  // Aparencia da sala publica. Valores validados na camada de aplicacao.
+  temaSala                    String    @default("hotwebinar") @map("tema_sala")
+  corPrimaria                 String    @default("#e11d48") @map("cor_primaria")
+  corFundo                    String    @default("#fafaf8") @map("cor_fundo")
+  corTexto                    String    @default("#18181b") @map("cor_texto")
+  fonteSala                   String    @default("Inter") @map("fonte_sala")
   tipoAgendamento             String    @default("fixo") @map("tipo_agendamento")
   // JSON array de horarios "HH:mm", usado quando tipoAgendamento = "fixo"
   horariosFixos               Json?     @map("horarios_fixos")

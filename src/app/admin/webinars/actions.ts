@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
 import { REPETICOES_AGENDADO, TIPOS_AGENDAMENTO, type RepeticaoAgendado, type TipoAgendamento } from "@/lib/scheduling";
+import { parseFonteSala, parseHexColor, parseTemaSala, VISUAL_DEFAULTS } from "@/lib/webinarVisual";
 
 function slugify(value: string): string {
   return value
@@ -89,6 +90,11 @@ function parseWebinarFormData(formData: FormData) {
 
   const audienciaFakeMaxRaw = String(formData.get("audienciaFakeMax") ?? "").trim();
   const audienciaFakeMax = audienciaFakeMaxRaw ? Number(audienciaFakeMaxRaw) : undefined;
+  const temaSala = parseTemaSala(formData.get("temaSala"));
+  const corPrimaria = parseHexColor(formData.get("corPrimaria"), VISUAL_DEFAULTS.corPrimaria);
+  const corFundo = parseHexColor(formData.get("corFundo"), VISUAL_DEFAULTS.corFundo);
+  const corTexto = parseHexColor(formData.get("corTexto"), VISUAL_DEFAULTS.corTexto);
+  const fonteSala = parseFonteSala(formData.get("fonteSala"));
 
   if (!titulo || !slug || !videoUrl || !ctaTexto || !ctaLink) {
     throw new Error("Preencha todos os campos obrigatorios.");
@@ -134,6 +140,11 @@ function parseWebinarFormData(formData: FormData) {
     metaPixelId,
     audienciaFakeMin,
     audienciaFakeMax,
+    temaSala,
+    corPrimaria,
+    corFundo,
+    corTexto,
+    fonteSala,
   };
 }
 
@@ -169,6 +180,11 @@ export async function createWebinar(formData: FormData) {
       metaPixelId: data.metaPixelId,
       audienciaFakeMin: data.audienciaFakeMin,
       audienciaFakeMax: data.audienciaFakeMax,
+      temaSala: data.temaSala,
+      corPrimaria: data.corPrimaria,
+      corFundo: data.corFundo,
+      corTexto: data.corTexto,
+      fonteSala: data.fonteSala,
     },
   });
 
@@ -209,6 +225,11 @@ export async function updateWebinar(id: string, formData: FormData) {
       metaPixelId: data.metaPixelId ?? null,
       audienciaFakeMin: data.audienciaFakeMin ?? null,
       audienciaFakeMax: data.audienciaFakeMax ?? null,
+      temaSala: data.temaSala,
+      corPrimaria: data.corPrimaria,
+      corFundo: data.corFundo,
+      corTexto: data.corTexto,
+      fonteSala: data.fonteSala,
     },
   });
 
@@ -259,6 +280,11 @@ export async function duplicateWebinar(id: string) {
       sincronizarVideoComHorario: original.sincronizarVideoComHorario,
       audienciaFakeMin: original.audienciaFakeMin,
       audienciaFakeMax: original.audienciaFakeMax,
+      temaSala: original.temaSala,
+      corPrimaria: original.corPrimaria,
+      corFundo: original.corFundo,
+      corTexto: original.corTexto,
+      fonteSala: original.fonteSala,
       tipoAgendamento: original.tipoAgendamento,
       horariosFixos: original.horariosFixos ?? undefined,
       intervaloRecorrenciaMinutos: original.intervaloRecorrenciaMinutos,
