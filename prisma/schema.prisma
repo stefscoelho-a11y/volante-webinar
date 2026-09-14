@@ -64,6 +64,7 @@ model Webinar {
 
   chatMessages ChatMessage[]
   leads        Lead[]
+  transcricao  Transcricao?
 
   @@map("webinars")
 }
@@ -95,4 +96,21 @@ model Lead {
 
   @@index([webinarId])
   @@map("leads")
+}
+
+// Transcricao do video com tempos, importada de um arquivo de legenda.
+// Tabela separada de proposito: o JSON chega a centenas de KB e a pagina
+// publica da sala nao deve carregar isso a cada acesso.
+model Transcricao {
+  id           String   @id @default(cuid())
+  webinarId    String   @unique @map("webinar_id")
+  webinar      Webinar  @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+  // JSON array de { inicio, fim, texto } - inicio/fim em segundos do video
+  segmentos    Json
+  // "srt" | "vtt"
+  formato      String
+  nomeArquivo  String?  @map("nome_arquivo")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  @@map("transcricoes")
 }

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { lerSegmentos } from "@/lib/legendas";
 import { Prisma } from "@/generated/prisma/client";
 import { REPETICOES_AGENDADO, TIPOS_AGENDAMENTO, type RepeticaoAgendado, type TipoAgendamento } from "@/lib/scheduling";
 import { parseFonteSala, parseHexColor, parseTemaSala, VISUAL_DEFAULTS } from "@/lib/webinarVisual";
@@ -252,7 +253,7 @@ async function gerarSlugUnico(base: string): Promise<string> {
 export async function duplicateWebinar(id: string) {
   const original = await prisma.webinar.findUnique({
     where: { id },
-    include: { chatMessages: true },
+    include: { chatMessages: true, transcricao: true },
   });
   if (!original) throw new Error("Webinario nao encontrado.");
 
@@ -295,6 +296,15 @@ export async function duplicateWebinar(id: string) {
       // A copia comeca inativa de proposito - evita publicar uma sessao
       // agendada/recorrente duplicada sem revisar antes.
       ativo: false,
+      transcricao: original.transcricao
+        ? {
+            create: {
+              segmentos: lerSegmentos(original.transcricao.segmentos),
+              formato: original.transcricao.formato,
+              nomeArquivo: original.transcricao.nomeArquivo,
+            },
+          }
+        : undefined,
       chatMessages: {
         create: original.chatMessages.map((mensagem) => ({
           timestampSegundos: mensagem.timestampSegundos,

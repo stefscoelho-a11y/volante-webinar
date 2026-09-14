@@ -3,6 +3,8 @@
 import { useMemo, useState, useTransition } from "react";
 import { AdminVideoScrubber } from "./AdminVideoScrubber";
 import { saveChatScript } from "@/app/admin/webinars/[id]/chat/actions";
+import type { MensagemGerada } from "@/lib/roteiroIA";
+import { RoteiroIAPanel, type TranscricaoInfo } from "./RoteiroIAPanel";
 
 type EditableMessage = {
   key: string;
@@ -22,6 +24,8 @@ type ChatScriptEditorProps = {
     texto: string;
     tipo: string;
   }>;
+  transcricao: TranscricaoInfo | null;
+  pitchTimestampSeconds: number;
 };
 
 function randomKey(): string {
@@ -33,7 +37,13 @@ function randomKey(): string {
 // vencendo de forma imprevisivel dependendo da ordem de geracao do CSS.
 const inputClass = "rounded border border-gray-300 bg-gray-100 px-2 py-1 text-sm outline-none focus:border-emerald-500";
 
-export function ChatScriptEditor({ webinarId, videoId, initialMessages }: ChatScriptEditorProps) {
+export function ChatScriptEditor({
+  webinarId,
+  videoId,
+  initialMessages,
+  transcricao,
+  pitchTimestampSeconds,
+}: ChatScriptEditorProps) {
   const [messages, setMessages] = useState<EditableMessage[]>(() =>
     initialMessages.map((message) => ({
       key: message.id,
@@ -84,6 +94,16 @@ export function ChatScriptEditor({ webinarId, videoId, initialMessages }: ChatSc
     ]);
   }
 
+  // Mensagens geradas pela IA entram so no estado do editor: nada vai pro
+  // banco ate o admin revisar e clicar em "Salvar roteiro".
+  function aplicarRoteiroGerado(geradas: MensagemGerada[], modo: "substituir" | "adicionar") {
+    const novas: EditableMessage[] = geradas.map((mensagem) => ({ key: randomKey(), ...mensagem }));
+    setMessages((prev) =>
+      modo === "substituir" ? novas : [...prev, ...novas].sort((a, b) => a.timestampSegundos - b.timestampSegundos),
+    );
+    setSavedAt(null);
+  }
+
   function handleSave() {
     const formData = new FormData();
     formData.set(
@@ -106,6 +126,14 @@ export function ChatScriptEditor({ webinarId, videoId, initialMessages }: ChatSc
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
       <div>
+        <RoteiroIAPanel
+          webinarId={webinarId}
+          transcricao={transcricao}
+          pitchTimestampSeconds={pitchTimestampSeconds}
+          temMensagens={messages.length > 0}
+          onRoteiroGerado={aplicarRoteiroGerado}
+        />
+
         <div className="mb-3 flex items-center gap-3">
           <button
             type="button"
