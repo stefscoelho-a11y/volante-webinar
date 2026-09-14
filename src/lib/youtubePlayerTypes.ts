@@ -15,6 +15,10 @@ export type YouTubePlayer = {
   isMuted: () => boolean;
   setVolume: (volume: number) => void;
   getVolume: () => number;
+  getPlayerState: () => number;
+  // Nao documentado oficialmente (por isso opcional), mas estavel ha anos:
+  // descarrega modulos do player, como o de legendas.
+  unloadModule?: (module: string) => void;
 };
 
 declare global {
@@ -24,14 +28,24 @@ declare global {
         elementId: string,
         options: {
           videoId: string;
+          width?: number | string;
+          height?: number | string;
           playerVars?: Record<string, number | string>;
           events?: {
             onReady?: (event: { target: YouTubePlayer }) => void;
             onStateChange?: (event: { data: number; target: YouTubePlayer }) => void;
+            onApiChange?: (event: { target: YouTubePlayer }) => void;
           };
         },
       ) => YouTubePlayer;
-      PlayerState: { PLAYING: number; PAUSED: number; ENDED: number };
+      PlayerState: {
+        UNSTARTED: number;
+        ENDED: number;
+        PLAYING: number;
+        PAUSED: number;
+        BUFFERING: number;
+        CUED: number;
+      };
     };
     onYouTubeIframeAPIReady: () => void;
   }

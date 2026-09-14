@@ -27,6 +27,14 @@ const DRIFT_TOLERANCE_SECONDS = 2;
 // pra chat/CTA seguirem o tempo do video em vez do relogio real).
 const VIDEO_TIME_POLL_MS = 500;
 
+// A legenda automatica do YouTube liga sozinha pra quem marcou "sempre mostrar
+// legendas" na conta - cc_load_policy:0 nao impede. Descarregar o modulo de
+// legendas resolve (chamado de novo quando o player recarrega modulos).
+function esconderLegendas(player: YouTubePlayer) {
+  player.unloadModule?.("captions");
+  player.unloadModule?.("cc");
+}
+
 function loadYouTubeApiOnce(): Promise<void> {
   if (window.YT?.Player) return Promise.resolve();
   return new Promise((resolve) => {
@@ -82,6 +90,9 @@ export function SalaVideo({
   const [volume, setVolume] = useState(100);
   const [showUnmutePrompt, setShowUnmutePrompt] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
+  // So mostra o video enquanto ele toca: carregando, pausado ou no fim o
+  // YouTube desenha titulo e sugestoes de "mais videos" por cima dele.
+  const [reproduzindo, setReproduzindo] = useState(false);
   const playerRef = useRef<YouTubePlayer | null>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const onVideoTimeChangeRef = useRef(onVideoTimeChange);
@@ -98,7 +109,13 @@ export function SalaVideo({
 
       new window.YT.Player("youtube-player-target", {
         videoId,
+        width: "100%",
+        height: "100%",
         playerVars: {
+          cc_load_policy: 0,
+          // No iPhone, sem isso o video abre na tela cheia nativa do YouTube
+          playsinline: 1,
+          origin: window.location.origin,
           autoplay: 1,
           mute: 1,
           // Sem barra de progresso, sem botao de play/pause, sem teclado e
@@ -116,6 +133,7 @@ export function SalaVideo({
           onReady: (event) => {
             playerRef.current = event.target;
             setVolume(event.target.getVolume());
+            esconderLegendas(event.target);
 
             // Seek inicial: com sincronizacao ligada, pula pro ponto do
             // relogio real (nunca comeca do zero). Desligada, comeca do
@@ -124,7 +142,15 @@ export function SalaVideo({
             event.target.seekTo(startAt, true);
             event.target.playVideo();
           },
+          onApiChange: (event) => esconderLegendas(event.target),
           onStateChange: (event) => {
+            if (event.data === window.YT.PlayerState.PLAYING) {
+              setReproduzindo(true);
+              esconderLegendas(event.target);
+            } else if (event.data !== window.YT.PlayerState.BUFFERING) {
+              setReproduzindo(false);
+            }
+
             if (!sincronizarComHorario) return;
             if (event.data !== window.YT.PlayerState.PLAYING) return;
 
@@ -165,6 +191,8 @@ export function SalaVideo({
     if (player.isMuted()) {
       player.unMute();
       setMuted(false);
+      // Se o navegador barrou o autoplay, o clique pra ouvir tambem da o play
+      if (player.getPlayerState() !== window.YT.PlayerState.PLAYING) player.playVideo();
     } else {
       player.mute();
       setMuted(true);
@@ -204,10 +232,20 @@ export function SalaVideo({
     >
       {/* pointer-events-none bloqueia qualquer clique/toque/scroll no
           iframe do YouTube (inclusive botao direito), impedindo o
-          espectador de interagir com o player por fora do nosso codigo */}
-      <div className="pointer-events-none h-full w-full">
+          espectador de interagir com o player por fora do nosso codigo.
+          O iframe fica 64px mais alto em cima e embaixo que a moldura: o
+          video 16:9 continua do mesmo tamanho, e o titulo, o logo e o
+          "Assistir no YouTube", que o YouTube desenha nas bordas do player,
+          caem na faixa preta cortada pelo overflow-hidden. */}
+      <div className="pointer-events-none absolute inset-x-0 -bottom-16 -top-16 [&_iframe]:h-full [&_iframe]:w-full">
         <div id="youtube-player-target" className="h-full w-full" />
       </div>
+
+      {!reproduzindo && (
+        <div className="pointer-events-none absolute inset-0 z-[5] flex items-center justify-center bg-black">
+          <span className="h-9 w-9 animate-spin rounded-full border-2 border-white/25 border-t-white" />
+        </div>
+      )}
 
       <div className="pointer-events-none absolute left-2 top-2 z-20 flex overflow-hidden rounded-md text-[11px] font-semibold shadow-sm sm:left-3 sm:top-3 sm:text-xs">
         <span className="room-accent-bg flex items-center gap-1.5 px-2.5 py-2 sm:px-3">
