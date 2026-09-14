@@ -2,13 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { TemaSala } from "@/lib/webinarVisual";
+import { dividirLinks } from "@/lib/chatMensagens";
 
 export type ChatMessageData = {
   id: string;
   timestampSegundos: number;
   nomeAutor: string;
   texto: string;
-  tipo: string; // "mensagem" | "sistema"
+  tipo: string; // "mensagem" | "sistema" | "suporte"
 };
 
 type ChatPanelProps = {
@@ -38,6 +39,7 @@ export function ChatPanel({ messages, elapsedSeconds, tema, viewerCount }: ChatP
   // Derivado do relogio compartilhado: quem entra no meio recebe o historico
   // anterior, e o preview do admin pode voltar no tempo sem estado residual.
   const visibleMessages = messages.filter((message) => message.timestampSegundos <= elapsedSeconds);
+  const mensagensSuporte = visibleMessages.filter((message) => message.tipo === "suporte");
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -85,7 +87,13 @@ export function ChatPanel({ messages, elapsedSeconds, tema, viewerCount }: ChatP
         </div>
       )}
 
-      {activeTab === "suporte" && !isYouTube ? (
+      {activeTab === "suporte" && !isYouTube && mensagensSuporte.length > 0 ? (
+        <div className="room-scrollbar flex-1 space-y-3 overflow-y-auto px-3 py-4">
+          {mensagensSuporte.map((message) => (
+            <MensagemSuporte key={message.id} message={message} />
+          ))}
+        </div>
+      ) : activeTab === "suporte" && !isYouTube ? (
         <div className="flex flex-1 items-center justify-center p-8 text-center">
           <div className="max-w-52">
             <IconSupport />
@@ -103,6 +111,8 @@ export function ChatPanel({ messages, elapsedSeconds, tema, viewerCount }: ChatP
             <p key={message.id} className="room-muted text-center text-xs italic">
               {message.texto}
             </p>
+          ) : message.tipo === "suporte" ? (
+            <MensagemSuporte key={message.id} message={message} />
           ) : (
             <div key={message.id} className="flex items-start gap-2">
               <span
@@ -127,6 +137,41 @@ export function ChatPanel({ messages, elapsedSeconds, tema, viewerCount }: ChatP
         Comentários desativados...
       </div>
     </aside>
+  );
+}
+
+// Mensagem da equipe: destacada na cor da sala e com links clicaveis (ex: checkout)
+function MensagemSuporte({ message }: { message: ChatMessageData }) {
+  return (
+    <div
+      className="rounded-lg border px-3 py-2"
+      style={{
+        borderColor: "color-mix(in srgb, var(--room-accent) 35%, transparent)",
+        background: "color-mix(in srgb, var(--room-accent) 7%, transparent)",
+      }}
+    >
+      <p className="flex flex-wrap items-center gap-1.5 text-xs font-semibold">
+        <span className="room-accent-text">{message.nomeAutor}</span>
+        <span className="room-accent-bg rounded px-1.5 py-px text-[10px] uppercase tracking-wide">Suporte</span>
+      </p>
+      <p className="mt-1 break-words text-sm leading-snug">
+        {dividirLinks(message.texto).map((trecho, indice) =>
+          trecho.link ? (
+            <a
+              key={indice}
+              href={trecho.texto}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className="room-accent-text break-all font-medium underline underline-offset-2"
+            >
+              {trecho.texto}
+            </a>
+          ) : (
+            <span key={indice}>{trecho.texto}</span>
+          ),
+        )}
+      </p>
+    </div>
   );
 }
 

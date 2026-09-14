@@ -1,5 +1,6 @@
 import { Prisma, type ChatMessage, type Transcricao, type Webinar } from "@/generated/prisma/client";
 import { lerSegmentos, type SegmentoTranscricao } from "@/lib/legendas";
+import { parseTipoMensagem } from "@/lib/chatMensagens";
 import { REPETICOES_AGENDADO, TIPOS_AGENDAMENTO } from "@/lib/scheduling";
 import { FONTES_SALA, TEMAS_SALA, VISUAL_DEFAULTS } from "@/lib/webinarVisual";
 
@@ -252,7 +253,7 @@ export function lerJsonExportado(conteudo: unknown): PacoteWebinar {
       nomeAutor: mensagem.nomeAutor,
       avatarUrl: typeof mensagem.avatarUrl === "string" ? mensagem.avatarUrl : null,
       texto: mensagem.texto,
-      tipo: mensagem.tipo === "sistema" ? "sistema" : "mensagem",
+      tipo: parseTipoMensagem(mensagem.tipo),
       ordem: Number.isInteger(mensagem.ordem) ? (mensagem.ordem as number) : indice,
     };
   });

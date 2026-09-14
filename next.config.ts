@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
       { source: "/w/:slug/:path+", destination: "/:slug/:path+", permanent: false },
     ];
   },
+  // Leitura/geracao de planilhas do chat: fica fora do bundle do servidor
+  serverExternalPackages: ["exceljs"],
   images: {
     // Miniaturas dos videos do YouTube na listagem do admin
     remotePatterns: [{ protocol: "https", hostname: "i.ytimg.com", pathname: "/vi/**" }],

@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { detectarFormato, lerSegmentos, parseLegenda } from "@/lib/legendas";
+import { detectarFormato, formatarTempo, lerSegmentos, parseLegenda } from "@/lib/legendas";
+import { parseTipoMensagem, type MensagemChatImportada } from "@/lib/chatMensagens";
+import { ErroPlanilha, lerPlanilhaChat } from "@/lib/chatPlanilha";
 import { ErroGeracaoRoteiro, gerarRoteiro, type DensidadeChat, type RoteiroGerado } from "@/lib/roteiroIA";
 
 type ChatScriptItem = {
@@ -35,7 +37,7 @@ export async function saveChatScript(webinarId: string, formData: FormData) {
           timestampSegundos: Math.max(0, Math.floor(Number(item.timestampSegundos) || 0)),
           nomeAutor: String(item.nomeAutor ?? "").trim() || "Anonimo",
           texto: String(item.texto ?? "").trim(),
-          tipo: item.tipo === "sistema" ? "sistema" : "mensagem",
+          tipo: parseTipoMensagem(item.tipo),
           ordem: index,
         })),
     }),
@@ -135,4 +137,45 @@ export async function aplicarPitchDetectado(webinarId: string, segundos: number)
   });
   revalidatePath(`/admin/webinars/${webinarId}/chat`);
   revalidatePath(`/admin/webinars/${webinarId}/editar`);
+}
+
+// ---------------------------------------------------------------------------
+// Planilha de comentarios (modelo do HotWebinar)
+// ---------------------------------------------------------------------------
+
+const TAMANHO_MAXIMO_PLANILHA_BYTES = 5 * 1024 * 1024;
+
+export type ResultadoImportacaoPlanilha =
+  | { ok: true; mensagens: MensagemChatImportada[]; avisos: string[] }
+  | { ok: false; erro: string };
+
+/** Le a planilha e devolve as mensagens pro editor - nao grava nada (o admin revisa e salva). */
+export async function importarPlanilhaChat(webinarId: string, formData: FormData): Promise<ResultadoImportacaoPlanilha> {
+  const arquivo = formData.get("arquivo");
+  if (!(arquivo instanceof File) || arquivo.size === 0) {
+    return { ok: false, erro: "Selecione uma planilha .xlsx ou .csv." };
+  }
+  if (arquivo.size > TAMANHO_MAXIMO_PLANILHA_BYTES) {
+    return { ok: false, erro: "Planilha muito grande (máximo de 5 MB)." };
+  }
+
+  const webinar = await prisma.webinar.findUnique({ where: { id: webinarId }, select: { videoDurationSeconds: true } });
+  if (!webinar) return { ok: false, erro: "Webinário não encontrado." };
+
+  try {
+    const { mensagens, avisos } = await lerPlanilhaChat(arquivo.name, Buffer.from(await arquivo.arrayBuffer()));
+    const depoisDoFim = mensagens.filter((mensagem) => mensagem.timestampSegundos >= webinar.videoDurationSeconds).length;
+    if (depoisDoFim > 0) {
+      avisos.push(
+        `${depoisDoFim} ${depoisDoFim === 1 ? "mensagem fica" : "mensagens ficam"} depois do fim do vídeo (${formatarTempo(
+          webinar.videoDurationSeconds,
+        )}) e não ${depoisDoFim === 1 ? "vai aparecer" : "vão aparecer"} na sala.`,
+      );
+    }
+    return { ok: true, mensagens, avisos };
+  } catch (erro) {
+    if (erro instanceof ErroPlanilha) return { ok: false, erro: erro.message };
+    console.error("Falha ao ler planilha do chat", erro);
+    return { ok: false, erro: "Não consegui ler essa planilha. Salve como .xlsx ou .csv e tente de novo." };
+  }
 }

@@ -3,15 +3,16 @@
 import { useMemo, useState, useTransition } from "react";
 import { AdminVideoScrubber } from "./AdminVideoScrubber";
 import { saveChatScript } from "@/app/admin/webinars/[id]/chat/actions";
-import type { MensagemGerada } from "@/lib/roteiroIA";
+import { parseTipoMensagem, type TipoMensagemChat } from "@/lib/chatMensagens";
 import { RoteiroIAPanel, type TranscricaoInfo } from "./RoteiroIAPanel";
+import { PlanilhaChatPanel } from "./PlanilhaChatPanel";
 
 type EditableMessage = {
   key: string;
   timestampSegundos: number;
   nomeAutor: string;
   texto: string;
-  tipo: "mensagem" | "sistema";
+  tipo: TipoMensagemChat;
 };
 
 type ChatScriptEditorProps = {
@@ -50,7 +51,7 @@ export function ChatScriptEditor({
       timestampSegundos: message.timestampSegundos,
       nomeAutor: message.nomeAutor,
       texto: message.texto,
-      tipo: message.tipo === "sistema" ? "sistema" : "mensagem",
+      tipo: parseTipoMensagem(message.tipo),
     })),
   );
   const [currentTime, setCurrentTime] = useState(0);
@@ -94,10 +95,10 @@ export function ChatScriptEditor({
     ]);
   }
 
-  // Mensagens geradas pela IA entram so no estado do editor: nada vai pro
-  // banco ate o admin revisar e clicar em "Salvar roteiro".
-  function aplicarRoteiroGerado(geradas: MensagemGerada[], modo: "substituir" | "adicionar") {
-    const novas: EditableMessage[] = geradas.map((mensagem) => ({ key: randomKey(), ...mensagem }));
+  // Mensagens geradas pela IA ou importadas da planilha entram so no estado
+  // do editor: nada vai pro banco ate o admin revisar e clicar em "Salvar roteiro".
+  function aplicarMensagens(recebidas: Array<Omit<EditableMessage, "key">>, modo: "substituir" | "adicionar") {
+    const novas: EditableMessage[] = recebidas.map((mensagem) => ({ key: randomKey(), ...mensagem }));
     setMessages((prev) =>
       modo === "substituir" ? novas : [...prev, ...novas].sort((a, b) => a.timestampSegundos - b.timestampSegundos),
     );
@@ -131,8 +132,10 @@ export function ChatScriptEditor({
           transcricao={transcricao}
           pitchTimestampSeconds={pitchTimestampSeconds}
           temMensagens={messages.length > 0}
-          onRoteiroGerado={aplicarRoteiroGerado}
+          onRoteiroGerado={aplicarMensagens}
         />
+
+        <PlanilhaChatPanel webinarId={webinarId} temMensagens={messages.length > 0} onImportar={aplicarMensagens} />
 
         <div className="mb-3 flex items-center gap-3">
           <button
@@ -187,10 +190,11 @@ export function ChatScriptEditor({
 
               <select
                 value={message.tipo}
-                onChange={(e) => updateMessage(message.key, { tipo: e.target.value as "mensagem" | "sistema" })}
+                onChange={(e) => updateMessage(message.key, { tipo: parseTipoMensagem(e.target.value) })}
                 className={`${inputClass} w-28`}
               >
                 <option value="mensagem">mensagem</option>
+                <option value="suporte">suporte</option>
                 <option value="sistema">sistema</option>
               </select>
 
@@ -239,6 +243,11 @@ export function ChatScriptEditor({
                 <p key={message.key} className="text-center text-xs italic text-gray-500">
                   {message.texto}
                 </p>
+              ) : message.tipo === "suporte" ? (
+                <div key={message.key} className="rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs">
+                  <span className="font-semibold text-emerald-700">{message.nomeAutor || "Suporte"} (suporte): </span>
+                  <span className="break-words text-gray-800">{message.texto}</span>
+                </div>
               ) : (
                 <div key={message.key} className="text-xs">
                   <span className="font-semibold text-emerald-600">{message.nomeAutor || "Anonimo"}: </span>
