@@ -6,6 +6,7 @@ import { formatCountdown, isSessaoEncerrada } from "@/lib/scheduling";
 import { getFakeViewerCount } from "@/lib/fakeViewers";
 import { SalaVideo } from "./SalaVideo";
 import { ChatPanel, type ChatMessageData } from "./ChatPanel";
+import type { ChatAoVivoConfig } from "@/lib/chatAoVivo";
 import { OfertaBlock } from "./OfertaBlock";
 import { MetaPixel } from "./MetaPixel";
 import {
@@ -45,6 +46,9 @@ type SalaRoomProps = {
   corTexto: string;
   fonteSala: string;
   isReplay?: boolean;
+  // Comentarios reais e presenca (painel Ao vivo). Sem isso (preview do
+  // admin, sala teste) o chat fica so com o roteiro.
+  chatAoVivo?: ChatAoVivoConfig;
 };
 
 export function SalaRoom({
@@ -76,6 +80,7 @@ export function SalaRoom({
   corTexto,
   fonteSala,
   isReplay = false,
+  chatAoVivo,
 }: SalaRoomProps) {
   const [sessionStart] = useState(() => new Date(sessionStartIso));
   // Relogio da AGENDA: sempre baseado no relogio real, independente do
@@ -210,6 +215,7 @@ export function SalaRoom({
               elapsedSeconds={elapsedParaConteudo}
               tema={tema}
               viewerCount={viewerCount}
+              chatAoVivo={chatAoVivo}
             />
           </div>
         </main>

@@ -4,6 +4,7 @@ import { BarChart3, ChevronLeft, ChevronRight, Copy, Globe, Link2, MonitorPlay, 
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { webinarPath } from "@/lib/linksAcesso";
+import { contarAssistindoPorWebinar } from "@/lib/aoVivo";
 import { TIPOS_AGENDAMENTO } from "@/lib/scheduling";
 import { resumoAgenda, rotuloTipoAgendamento } from "@/lib/webinarResumo";
 import { extractYouTubeId } from "@/lib/youtube";
@@ -54,6 +55,7 @@ export default async function WebinarsListPage({ searchParams }: WebinarsListPag
     take: POR_PAGINA,
     include: { _count: { select: { leads: true } } },
   });
+  const assistindoPorWebinar = await contarAssistindoPorWebinar(webinars.map((webinar) => webinar.id));
 
   function hrefPagina(numero: number): string {
     const query = new URLSearchParams();
@@ -117,6 +119,7 @@ export default async function WebinarsListPage({ searchParams }: WebinarsListPag
             {webinars.map((webinar) => {
               const videoId = webinar.videoUrl ? extractYouTubeId(webinar.videoUrl) : null;
               const editarHref = `/admin/webinars/${webinar.id}/editar`;
+              const assistindo = assistindoPorWebinar.get(webinar.id) ?? 0;
               return (
                 <li
                   key={webinar.id}
@@ -132,6 +135,18 @@ export default async function WebinarsListPage({ searchParams }: WebinarsListPag
                         {webinar.titulo}
                       </Link>
                       <p className="mt-1 truncate text-[13px] text-gray-500">{resumoAgenda(webinar)}</p>
+                      {assistindo > 0 && (
+                        <Link
+                          href={`/admin/webinars/${webinar.id}/ao-vivo`}
+                          className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 hover:text-emerald-800"
+                        >
+                          <span className="relative flex h-2 w-2">
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                          </span>
+                          {assistindo} assistindo agora
+                        </Link>
+                      )}
                     </div>
                   </div>
 

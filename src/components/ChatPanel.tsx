@@ -1,15 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { TemaSala } from "@/lib/webinarVisual";
 import { dividirLinks } from "@/lib/chatMensagens";
+import { MAX_COMENTARIO, type ChatAoVivoConfig } from "@/lib/chatAoVivo";
+import { useChatAoVivo, type ChatAoVivo } from "@/hooks/useChatAoVivo";
+
+// A resposta do suporte e posicionada alguns segundos "a frente" na timeline
+// do participante; a folga evita que ela fique escondida esperando o relogio.
+const FOLGA_COMENTARIO_REAL_SEGUNDOS = 15;
 
 export type ChatMessageData = {
   id: string;
   timestampSegundos: number;
   nomeAutor: string;
   texto: string;
-  tipo: string; // "mensagem" | "sistema" | "suporte"
+  tipo: string; // "mensagem" | "sistema" | "suporte" | "participante" (comentario real do espectador)
 };
 
 type ChatPanelProps = {
@@ -17,6 +23,7 @@ type ChatPanelProps = {
   elapsedSeconds: number;
   tema: TemaSala;
   viewerCount: number;
+  chatAoVivo?: ChatAoVivoConfig;
 };
 
 function getInitials(nome: string): string {
@@ -32,13 +39,29 @@ function getAvatarColor(nome: string): string {
   return `hsl(${hash % 360}, 60%, 45%)`;
 }
 
-export function ChatPanel({ messages, elapsedSeconds, tema, viewerCount }: ChatPanelProps) {
+export function ChatPanel({ messages, elapsedSeconds, tema, viewerCount, chatAoVivo }: ChatPanelProps) {
   const [activeTab, setActiveTab] = useState<"chat" | "suporte">("chat");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const chat = useChatAoVivo(chatAoVivo, elapsedSeconds);
+
+  // Comentarios reais entram na timeline no ponto do video em que foram enviados
+  const comentariosReais: ChatMessageData[] = chat.comentarios.map((comentario) => ({
+    id: `real-${comentario.id}`,
+    timestampSegundos: comentario.videoSegundos,
+    nomeAutor: comentario.nomeAutor,
+    texto: comentario.texto,
+    tipo: comentario.tipo,
+  }));
 
   // Derivado do relogio compartilhado: quem entra no meio recebe o historico
   // anterior, e o preview do admin pode voltar no tempo sem estado residual.
-  const visibleMessages = messages.filter((message) => message.timestampSegundos <= elapsedSeconds);
+  const visibleMessages = [...messages, ...comentariosReais]
+    .filter(
+      (message) =>
+        message.timestampSegundos <=
+        elapsedSeconds + (message.id.startsWith("real-") ? FOLGA_COMENTARIO_REAL_SEGUNDOS : 0),
+    )
+    .sort((a, b) => a.timestampSegundos - b.timestampSegundos);
   const mensagensSuporte = visibleMessages.filter((message) => message.tipo === "suporte");
 
   useEffect(() => {
@@ -113,6 +136,8 @@ export function ChatPanel({ messages, elapsedSeconds, tema, viewerCount }: ChatP
             </p>
           ) : message.tipo === "suporte" ? (
             <MensagemSuporte key={message.id} message={message} />
+          ) : message.tipo === "participante" ? (
+            <MensagemParticipante key={message.id} message={message} isYouTube={isYouTube} />
           ) : (
             <div key={message.id} className="flex items-start gap-2">
               <span
@@ -133,10 +158,134 @@ export function ChatPanel({ messages, elapsedSeconds, tema, viewerCount }: ChatP
       </div>
       )}
 
-      <div className="room-muted flex min-h-14 shrink-0 items-center justify-center border-t px-4 text-center text-xs" style={{ borderColor: "var(--room-border)" }}>
-        Comentários desativados...
-      </div>
+      {chat.habilitado ? (
+        <div className="shrink-0 border-t p-3" style={{ borderColor: "var(--room-border)" }}>
+          <CaixaComentario chat={chat} />
+        </div>
+      ) : (
+        <div className="room-muted flex min-h-14 shrink-0 items-center justify-center border-t px-4 text-center text-xs" style={{ borderColor: "var(--room-border)" }}>
+          Comentários desativados...
+        </div>
+      )}
     </aside>
+  );
+}
+
+const classeCampoChat =
+  "h-9 w-full min-w-0 rounded-md border bg-transparent px-3 text-sm outline-none transition focus:border-[var(--room-accent)]";
+
+function CaixaComentario({ chat }: { chat: ChatAoVivo }) {
+  const [texto, setTexto] = useState("");
+  const [erro, setErro] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
+  const [identificando, setIdentificando] = useState(false);
+
+  if (!chat.participante) {
+    if (!identificando) {
+      return (
+        <button
+          type="button"
+          onClick={() => setIdentificando(true)}
+          className="room-accent-bg h-9 w-full rounded-md text-sm font-semibold transition hover:opacity-90"
+        >
+          Participar do chat
+        </button>
+      );
+    }
+
+    return (
+      <form
+        action={async (formData) => {
+          setEnviando(true);
+          setErro(await chat.entrar(formData));
+          setEnviando(false);
+        }}
+        className="space-y-2"
+      >
+        <p className="room-muted text-xs">Informe seus dados para comentar.</p>
+        <input name="nome" required maxLength={120} placeholder="Seu nome" aria-label="Seu nome" className={classeCampoChat} style={{ borderColor: "var(--room-border)" }} />
+        <input name="email" type="email" required maxLength={200} placeholder="Seu email" aria-label="Seu email" className={classeCampoChat} style={{ borderColor: "var(--room-border)" }} />
+        {erro && <p className="text-xs text-red-600">{erro}</p>}
+        <div className="flex gap-2">
+          <button type="button" onClick={() => setIdentificando(false)} className="room-muted h-9 px-3 text-sm">
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={enviando}
+            className="room-accent-bg h-9 flex-1 rounded-md text-sm font-semibold transition hover:opacity-90 disabled:opacity-60"
+          >
+            {enviando ? "Entrando..." : "Entrar no chat"}
+          </button>
+        </div>
+      </form>
+    );
+  }
+
+  async function enviar(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    const valor = texto.trim();
+    if (!valor || enviando) return;
+    setEnviando(true);
+    const falha = await chat.comentar(valor);
+    setEnviando(false);
+    setErro(falha);
+    if (!falha) setTexto("");
+  }
+
+  return (
+    <form onSubmit={enviar}>
+      <div className="flex items-center gap-2">
+        <input
+          value={texto}
+          onChange={(evento) => setTexto(evento.target.value)}
+          maxLength={MAX_COMENTARIO}
+          placeholder={`Comentar como ${chat.participante.nome}`}
+          aria-label="Escreva um comentário"
+          className={classeCampoChat}
+          style={{ borderColor: "var(--room-border)" }}
+        />
+        <button
+          type="submit"
+          disabled={enviando || !texto.trim()}
+          aria-label="Enviar comentário"
+          className="room-accent-bg flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition hover:opacity-90 disabled:opacity-50"
+        >
+          <IconEnviar />
+        </button>
+      </div>
+      {erro && <p className="mt-1 text-xs text-red-600">{erro}</p>}
+    </form>
+  );
+}
+
+// Comentario do proprio espectador (cada um ve so os seus)
+function MensagemParticipante({ message, isYouTube }: { message: ChatMessageData; isYouTube: boolean }) {
+  return (
+    <div
+      className="flex items-start gap-2 rounded-lg px-2 py-1.5"
+      style={{ background: "color-mix(in srgb, var(--room-foreground) 5%, transparent)" }}
+    >
+      <span
+        className={`room-accent-bg mt-0.5 flex shrink-0 items-center justify-center rounded-full font-semibold ${
+          isYouTube ? "h-7 w-7 text-[10px]" : "h-6 w-6 text-[9px]"
+        }`}
+      >
+        {getInitials(message.nomeAutor)}
+      </span>
+      <p className={`${isYouTube ? "text-[13px]" : "text-sm"} min-w-0 break-words leading-snug`}>
+        <span className="font-semibold">{message.nomeAutor}</span> <span className="room-muted text-xs">(você)</span>{" "}
+        <span>{message.texto}</span>
+      </p>
+    </div>
+  );
+}
+
+function IconEnviar() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4">
+      <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z" strokeLinejoin="round" />
+    </svg>
   );
 }
 

@@ -79,6 +79,8 @@ model Webinar {
   chatMessages ChatMessage[]
   leads        Lead[]
   transcricao  Transcricao?
+  comentarios  Comentario[]
+  presencas    Presenca[]
 
   @@map("webinars")
 }
@@ -119,6 +121,8 @@ model Lead {
   // tipos, a primeira sessao em que entrou. Referencia pra liberar o replay.
   sessaoEscolhida DateTime? @map("sessao_escolhida")
   entrouEm        DateTime  @default(now()) @map("entrou_em")
+  comentarios     Comentario[]
+  presencas       Presenca[]
 
   @@index([webinarId, email])
   @@index([webinarId])
@@ -140,4 +144,50 @@ model Transcricao {
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
   @@map("transcricoes")
+}
+
+// Comentarios reais dos participantes na sala e as respostas do suporte.
+// Cada participante ve so os proprios comentarios e as respostas pra ele.
+model Comentario {
+  id            String       @id @default(cuid())
+  webinarId     String       @map("webinar_id")
+  webinar       Webinar      @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+  leadId        String       @map("lead_id")
+  lead          Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  // "participante" | "suporte"
+  tipo          String       @default("participante")
+  nomeAutor     String       @map("nome_autor")
+  texto         String
+  // Inicio da sessao ao vivo (ISO) ou "replay": separa o chat de cada sessao
+  sessao        String
+  // Segundo do conteudo em que a mensagem entra na timeline do participante
+  videoSegundos Int          @map("video_segundos")
+  respondeAId   String?      @map("responde_a_id")
+  respondeA     Comentario?  @relation("RespostasComentario", fields: [respondeAId], references: [id], onDelete: Cascade)
+  respostas     Comentario[] @relation("RespostasComentario")
+  criadoEm      DateTime     @default(now()) @map("criado_em")
+
+  @@index([webinarId, criadoEm])
+  @@index([leadId, sessao])
+  @@map("comentarios")
+}
+
+// Quem esta com a sala aberta: cada aba manda um sinal a cada poucos segundos
+model Presenca {
+  id            String   @id @default(cuid())
+  webinarId     String   @map("webinar_id")
+  webinar       Webinar  @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+  // Id aleatorio guardado no navegador (localStorage)
+  visitanteId   String   @map("visitante_id")
+  leadId        String?  @map("lead_id")
+  lead          Lead?    @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  // "sala" | "replay"
+  pagina        String
+  videoSegundos Int      @map("video_segundos")
+  entrouEm      DateTime @default(now()) @map("entrou_em")
+  ultimoSinal   DateTime @default(now()) @map("ultimo_sinal")
+
+  @@unique([webinarId, visitanteId])
+  @@index([webinarId, ultimoSinal])
+  @@map("presencas")
 }

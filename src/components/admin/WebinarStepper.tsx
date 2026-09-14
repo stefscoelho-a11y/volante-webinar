@@ -12,6 +12,7 @@ import {
   Palette,
   PlayCircle,
   Plug,
+  Radio,
 } from "lucide-react";
 
 export type WebinarStepKey =
@@ -23,7 +24,8 @@ export type WebinarStepKey =
   | "integracoes"
   | "links"
   | "chat"
-  | "preview";
+  | "preview"
+  | "ao-vivo";
 
 type IconComponent = (props: { className?: string }) => ReactNode;
 
@@ -67,6 +69,7 @@ function buildStepsAsLinks(webinarId: string): StepDef[] {
     { key: "links", label: "Links", icon: IconLinks, href: `/admin/webinars/${webinarId}/links` },
     { key: "chat", label: "Chat Fake", icon: IconChat, href: `/admin/webinars/${webinarId}/chat` },
     { key: "preview", label: "Preview", icon: IconPreview, href: `/admin/webinars/${webinarId}/preview` },
+    { key: "ao-vivo", label: "Ao vivo", icon: IconAoVivo, href: `/admin/webinars/${webinarId}/ao-vivo` },
   ];
 }
 
@@ -137,3 +140,4 @@ export const IconIntegracoes = Plug;
 export const IconLinks = Link2;
 export const IconChat = MessageSquare;
 export const IconPreview = PlayCircle;
+export const IconAoVivo = Radio;

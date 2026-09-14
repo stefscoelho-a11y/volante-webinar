@@ -137,6 +137,12 @@ export default async function SalaPage({ params, searchParams }: PageProps) {
       corFundo={webinar.corFundo}
       corTexto={webinar.corTexto}
       fonteSala={webinar.fonteSala}
+      chatAoVivo={{
+        webinarId: webinar.id,
+        pagina: "sala",
+        sessao: sessionStart.toISOString(),
+        participante: lead ? { nome: lead.nome } : null,
+      }}
       chatMessages={webinar.chatMessages.map((message) => ({
         id: message.id,
         timestampSegundos: message.timestampSegundos,

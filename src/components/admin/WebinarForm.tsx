@@ -15,6 +15,7 @@ import {
   IconChat,
   IconPreview,
   IconLinks,
+  IconAoVivo,
   type WebinarStepKey,
 } from "./WebinarStepper";
 
@@ -128,6 +129,7 @@ export function WebinarForm({ action, initialValues, submitLabel, webinarId, ini
           { key: "links" as const, label: "Links", icon: IconLinks, href: `/admin/webinars/${webinarId}/links` },
           { key: "chat" as const, label: "Chat Fake", icon: IconChat, href: `/admin/webinars/${webinarId}/chat` },
           { key: "preview" as const, label: "Preview", icon: IconPreview, href: `/admin/webinars/${webinarId}/preview` },
+          { key: "ao-vivo" as const, label: "Ao vivo", icon: IconAoVivo, href: `/admin/webinars/${webinarId}/ao-vivo` },
         ]
       : []),
   ];

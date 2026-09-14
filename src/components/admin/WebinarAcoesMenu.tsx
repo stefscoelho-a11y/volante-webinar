@@ -11,6 +11,7 @@ import {
   MoreVertical,
   Pencil,
   PlayCircle,
+  Radio,
   Trash2,
   TriangleAlert,
 } from "lucide-react";
@@ -78,6 +79,10 @@ export function WebinarAcoesMenu({
           <Link role="menuitem" href={`${base}/links`} className={classeItem}>
             <Link2 className="h-4 w-4 text-gray-400" />
             Links
+          </Link>
+          <Link role="menuitem" href={`${base}/ao-vivo`} className={classeItem}>
+            <Radio className="h-4 w-4 text-gray-400" />
+            Ao vivo
           </Link>
           <Link role="menuitem" href={`${base}/editar`} className={classeItem}>
             <Pencil className="h-4 w-4 text-gray-400" />

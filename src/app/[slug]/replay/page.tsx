@@ -99,6 +99,12 @@ export default async function ReplayPage({ params, searchParams }: ReplayPagePro
       corFundo={webinar.corFundo}
       corTexto={webinar.corTexto}
       fonteSala={webinar.fonteSala}
+      chatAoVivo={{
+        webinarId: webinar.id,
+        pagina: "replay",
+        sessao: "replay",
+        participante: lead ? { nome: lead.nome } : null,
+      }}
       isReplay
       chatMessages={webinar.chatMessages.map((message) => ({
         id: message.id,
