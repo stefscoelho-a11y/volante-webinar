@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { extractYouTubeId } from "@/lib/youtube";
 import { formatarDataHoraBrasilia } from "@/lib/scheduling";
 import { lerUtms } from "@/lib/linksAcesso";
+import { campoOcultoCanal, encontrarCanal, lerCanalDaQuery, resolverOferta } from "@/lib/canaisOferta";
 import { getLeadAtual, leadCadastrado, participanteDoChat, redirecionarSeMagicLink } from "@/lib/leads";
 import { getStatusReplay } from "@/lib/replay";
 import { SalaRoom } from "@/components/SalaRoom";
@@ -30,6 +31,7 @@ export default async function ReplayPage({ params, searchParams }: ReplayPagePro
     where: { slug },
     include: {
       chatMessages: { orderBy: [{ timestampSegundos: "asc" }, { ordem: "asc" }] },
+      canais: true,
     },
   });
   if (!webinar || !webinar.ativo) notFound();
@@ -48,7 +50,7 @@ export default async function ReplayPage({ params, searchParams }: ReplayPagePro
         descricao="Preencha seus dados para assistir ao replay."
         botao="Assistir ao replay"
         action={cadastrar.bind(null, slug, "replay")}
-        camposOcultos={lerUtms(query)}
+        camposOcultos={{ ...lerUtms(query), ...campoOcultoCanal(query) }}
       />
     );
   }
@@ -71,6 +73,9 @@ export default async function ReplayPage({ params, searchParams }: ReplayPagePro
     return <AvisoPagina titulo="Vídeo do webinário não configurado corretamente." />;
   }
 
+  const canalEncontrado = encontrarCanal(webinar.canais, lerCanalDaQuery(query), lead?.canalOferta);
+  const oferta = resolverOferta(webinar, canalEncontrado);
+
   return (
     <SalaRoom
       webinarId={webinar.id}
@@ -80,18 +85,19 @@ export default async function ReplayPage({ params, searchParams }: ReplayPagePro
       sessionStartIso={new Date().toISOString()}
       jaEncerradoNoCarregamento={false}
       sincronizarVideoComHorario={false}
-      ctaTexto={webinar.ctaTexto}
-      ctaLink={webinar.ctaLink}
+      ctaTexto={oferta.ctaTexto}
+      ctaLink={oferta.ctaLink}
       pitchTimestampSeconds={webinar.pitchTimestampSeconds}
-      ctaDesaparecerSegundos={webinar.ctaDesaparecerSegundos}
-      ofertaNome={webinar.ofertaNome}
-      ofertaTitulo={webinar.ofertaTitulo}
-      ofertaImagemUrl={webinar.ofertaImagemUrl}
-      ofertaDescricao={webinar.ofertaDescricao}
-      precoOriginal={webinar.precoOriginal}
-      precoOferta={webinar.precoOferta}
-      ctaCountdownMinutos={webinar.ctaCountdownMinutos}
-      metaPixelId={webinar.metaPixelId}
+      ctaDesaparecerSegundos={oferta.ctaDesaparecerSegundos}
+      ofertaNome={oferta.ofertaNome}
+      ofertaTitulo={oferta.ofertaTitulo}
+      ofertaImagemUrl={oferta.ofertaImagemUrl}
+      ofertaDescricao={oferta.ofertaDescricao}
+      precoOriginal={oferta.precoOriginal}
+      precoOferta={oferta.precoOferta}
+      precoParcelado={oferta.precoParcelado}
+      ctaCountdownMinutos={oferta.ctaCountdownMinutos}
+      metaPixelId={oferta.metaPixelId}
       audienciaFakeMin={webinar.audienciaFakeMin}
       audienciaFakeMax={webinar.audienciaFakeMax}
       temaSala={webinar.temaSala}

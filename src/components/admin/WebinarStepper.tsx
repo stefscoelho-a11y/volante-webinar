@@ -51,7 +51,10 @@ function buildStepsAsLinks(webinarId: string): StepDef[] {
       href: `/admin/webinars/${webinarId}/editar?step=agendamento`,
     },
     { key: "visual", label: "Visual", icon: IconVisual, href: `/admin/webinars/${webinarId}/editar?step=visual` },
-    { key: "oferta", label: "Oferta", icon: IconOferta, href: `/admin/webinars/${webinarId}/editar?step=oferta` },
+    // "Oferta" nao e mais uma etapa do wizard na edicao: e a mesma pagina dos
+    // canais de oferta (ver src/app/admin/webinars/[id]/oferta), pra ficar
+    // tudo num so lugar em vez de espalhado em duas abas.
+    { key: "oferta", label: "Oferta", icon: IconOferta, href: `/admin/webinars/${webinarId}/oferta` },
     {
       key: "audiencia",
       label: "Audiência",

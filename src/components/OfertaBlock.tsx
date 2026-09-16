@@ -14,6 +14,7 @@ type OfertaBlockProps = {
   ofertaDescricao: string | null;
   precoOriginal: number | null;
   precoOferta: number | null;
+  precoParcelado: string | null;
   ctaCountdownMinutos: number | null;
 };
 
@@ -38,6 +39,7 @@ export function OfertaBlock({
   ofertaDescricao,
   precoOriginal,
   precoOferta,
+  precoParcelado,
   ctaCountdownMinutos,
 }: OfertaBlockProps) {
   const apareceu = elapsedSeconds >= pitchTimestampSeconds;
@@ -80,6 +82,8 @@ export function OfertaBlock({
             {precoOferta != null && <span className="room-accent-text font-semibold">{formatBRL(precoOferta)}</span>}
           </p>
         )}
+
+        {precoParcelado && <p className="room-muted text-sm">ou {precoParcelado}</p>}
 
         <a
           href={ctaLink}

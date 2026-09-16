@@ -50,9 +50,15 @@ export async function salvarCookieLead(lead: Lead): Promise<void> {
 
 /**
  * Cadastra o participante ou reaproveita o cadastro do mesmo email nesse
- * webinar. Origem e UTMs ficam com o primeiro acesso (first touch).
+ * webinar. Origem, UTMs e canal de oferta ficam com o primeiro acesso (first
+ * touch).
  */
-export async function registrarLead(webinarId: string, dados: DadosParticipante, origem: OrigemLead): Promise<Lead> {
+export async function registrarLead(
+  webinarId: string,
+  dados: DadosParticipante,
+  origem: OrigemLead,
+  canalOferta: string | null = null,
+): Promise<Lead> {
   const existente = await prisma.lead.findFirst({
     where: { webinarId, email: { equals: dados.email, mode: "insensitive" } },
     orderBy: { entrouEm: "asc" },
@@ -60,7 +66,7 @@ export async function registrarLead(webinarId: string, dados: DadosParticipante,
 
   if (!existente) {
     return prisma.lead.create({
-      data: { ...dados, webinarId, origem, nome: dados.nome ?? dados.email.split("@")[0] },
+      data: { ...dados, webinarId, origem, canalOferta, nome: dados.nome ?? dados.email.split("@")[0] },
     });
   }
 
@@ -74,6 +80,7 @@ export async function registrarLead(webinarId: string, dados: DadosParticipante,
       utmCampaign: existente.utmCampaign ?? dados.utmCampaign,
       utmContent: existente.utmContent ?? dados.utmContent,
       utmTerm: existente.utmTerm ?? dados.utmTerm,
+      canalOferta: existente.canalOferta ?? canalOferta,
     },
   });
 }
@@ -102,6 +109,7 @@ export async function registrarEntrada(
   dados: DadosParticipante,
   viaSolicitada: string | null,
   magicLink: boolean,
+  canalOferta: string | null = null,
 ): Promise<{ lead: Lead; destino: string }> {
   // Link just in time com o just in time desligado cai no fluxo da sala principal
   const via: ViaEntrada =
@@ -119,7 +127,7 @@ export async function registrarEntrada(
           ? "magic_link"
           : "principal";
 
-  let lead = await registrarLead(webinar.id, dados, origem);
+  let lead = await registrarLead(webinar.id, dados, origem, canalOferta);
   if (justInTime) lead = await garantirSessaoJustInTime(lead, webinar);
 
   const destino = justInTime

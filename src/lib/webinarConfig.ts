@@ -45,6 +45,7 @@ const CAMPOS: Record<CampoConfig, TipoCampo> = {
   ofertaDescricao: "textoOpcional",
   precoOriginal: "numeroOpcional",
   precoOferta: "numeroOpcional",
+  precoParcelado: "textoOpcional",
   ctaCountdownMinutos: "inteiroOpcional",
   ctaDesaparecerSegundos: "inteiroOpcional",
   metaPixelId: "textoOpcional",

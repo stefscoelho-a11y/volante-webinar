@@ -35,6 +35,7 @@ type SalaRoomProps = {
   ofertaDescricao: string | null;
   precoOriginal: number | null;
   precoOferta: number | null;
+  precoParcelado: string | null;
   ctaCountdownMinutos: number | null;
   metaPixelId: string | null;
   audienciaFakeMin: number | null;
@@ -69,6 +70,7 @@ export function SalaRoom({
   ofertaDescricao,
   precoOriginal,
   precoOferta,
+  precoParcelado,
   ctaCountdownMinutos,
   metaPixelId,
   audienciaFakeMin,
@@ -205,6 +207,7 @@ export function SalaRoom({
               ofertaDescricao={ofertaDescricao}
               precoOriginal={precoOriginal}
               precoOferta={precoOferta}
+              precoParcelado={precoParcelado}
               ctaCountdownMinutos={ctaCountdownMinutos}
             />
           </section>

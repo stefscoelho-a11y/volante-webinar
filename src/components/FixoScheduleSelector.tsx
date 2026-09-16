@@ -4,15 +4,23 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatCountdown, parseHorarioNoDia } from "@/lib/scheduling";
 import { webinarPath } from "@/lib/linksAcesso";
+import { queryCanal } from "@/lib/canaisOferta";
 
 type FixoScheduleSelectorProps = {
   slug: string;
   titulo: string;
   horariosFixos: string[];
   videoDurationSeconds: number;
+  canal?: string | null;
 };
 
-export function FixoScheduleSelector({ slug, titulo, horariosFixos, videoDurationSeconds }: FixoScheduleSelectorProps) {
+export function FixoScheduleSelector({
+  slug,
+  titulo,
+  horariosFixos,
+  videoDurationSeconds,
+  canal,
+}: FixoScheduleSelectorProps) {
   const router = useRouter();
   // "now" fica atualizado a cada segundo so pra recalcular o status
   // (encerrado / ao vivo / contagem regressiva) de cada horario na tela.
@@ -26,7 +34,7 @@ export function FixoScheduleSelector({ slug, titulo, horariosFixos, videoDuratio
   // So o horario vai na URL: a sala valida contra a lista configurada e
   // calcula a sessao no servidor.
   function entrar(horario: string) {
-    router.push(webinarPath(slug, "sala", { h: horario }));
+    router.push(webinarPath(slug, "sala", { h: horario, ...queryCanal(canal) }));
   }
 
   const horarios = horariosFixos

@@ -8,6 +8,7 @@ import { REPETICOES_AGENDADO, TIPOS_AGENDAMENTO, type RepeticaoAgendado, type Ti
 import { parseFonteSala, parseHexColor, parseTemaSala, VISUAL_DEFAULTS } from "@/lib/webinarVisual";
 import { SLUGS_RESERVADOS } from "@/lib/linksAcesso";
 import { parseTempoHMS } from "@/lib/tempo";
+import { parseOfertaCampos } from "@/lib/ofertaForm";
 import { dadosNovoWebinar, lerJsonExportado, pacoteDoWebinar, type PacoteWebinar } from "@/lib/webinarConfig";
 
 const MAX_ARQUIVO_IMPORTACAO_BYTES = 10 * 1024 * 1024;
@@ -22,6 +23,10 @@ function slugify(value: string): string {
     .replace(/(^-|-$)/g, "");
 }
 
+// Campos da etapa "Oferta" (ofertaNome, ctaTexto, precos...) nao passam por
+// aqui: ficam em src/lib/ofertaForm.ts, compartilhado com a pagina /oferta
+// (onde a oferta principal e os canais de oferta ficam juntos, fora do
+// wizard de criacao/edicao).
 function parseWebinarFormData(formData: FormData) {
   const titulo = String(formData.get("titulo") ?? "").trim();
   const slugInput = String(formData.get("slug") ?? "").trim();
@@ -29,9 +34,6 @@ function parseWebinarFormData(formData: FormData) {
   const videoUrl = String(formData.get("videoUrl") ?? "").trim();
   // Tempos chegam como hh:mm:ss (ou so segundos) e sao gravados em segundos
   const videoDurationSeconds = parseTempoHMS(String(formData.get("videoDurationSeconds") ?? "")) ?? Number.NaN;
-  const pitchTimestampSeconds = parseTempoHMS(String(formData.get("pitchTimestampSeconds") ?? "")) ?? Number.NaN;
-  const ctaTexto = String(formData.get("ctaTexto") ?? "").trim();
-  const ctaLink = String(formData.get("ctaLink") ?? "").trim();
   const tipoAgendamentoRaw = String(formData.get("tipoAgendamento") ?? "recorrente");
   const tipoAgendamento: TipoAgendamento = (TIPOS_AGENDAMENTO as readonly string[]).includes(tipoAgendamentoRaw)
     ? (tipoAgendamentoRaw as TipoAgendamento)
@@ -73,23 +75,7 @@ function parseWebinarFormData(formData: FormData) {
       ? new Date(agendadoFimRaw)
       : undefined;
 
-  const ofertaNome = String(formData.get("ofertaNome") ?? "").trim() || undefined;
-  const ofertaTitulo = String(formData.get("ofertaTitulo") ?? "").trim() || undefined;
-  const ofertaImagemUrl = String(formData.get("ofertaImagemUrl") ?? "").trim() || undefined;
-  const ofertaDescricao = String(formData.get("ofertaDescricao") ?? "").trim() || undefined;
   const metaPixelId = String(formData.get("metaPixelId") ?? "").trim() || undefined;
-
-  const precoOriginalRaw = String(formData.get("precoOriginal") ?? "").trim();
-  const precoOriginal = precoOriginalRaw ? Number(precoOriginalRaw) : undefined;
-
-  const precoOfertaRaw = String(formData.get("precoOferta") ?? "").trim();
-  const precoOferta = precoOfertaRaw ? Number(precoOfertaRaw) : undefined;
-
-  const ctaCountdownRaw = String(formData.get("ctaCountdownMinutos") ?? "").trim();
-  const ctaCountdownMinutos = ctaCountdownRaw ? Number(ctaCountdownRaw) : undefined;
-
-  const ctaDesaparecerRaw = String(formData.get("ctaDesaparecerSegundos") ?? "").trim();
-  const ctaDesaparecerSegundos = ctaDesaparecerRaw ? (parseTempoHMS(ctaDesaparecerRaw) ?? Number.NaN) : undefined;
 
   const audienciaFakeMinRaw = String(formData.get("audienciaFakeMin") ?? "").trim();
   const audienciaFakeMin = audienciaFakeMinRaw ? Number(audienciaFakeMinRaw) : undefined;
@@ -102,7 +88,7 @@ function parseWebinarFormData(formData: FormData) {
   const corTexto = parseHexColor(formData.get("corTexto"), VISUAL_DEFAULTS.corTexto);
   const fonteSala = parseFonteSala(formData.get("fonteSala"));
 
-  if (!titulo || !slug || !videoUrl || !ctaTexto || !ctaLink) {
+  if (!titulo || !slug || !videoUrl) {
     throw new Error("Preencha todos os campos obrigatorios.");
   }
   if (SLUGS_RESERVADOS.includes(slug)) {
@@ -110,12 +96,6 @@ function parseWebinarFormData(formData: FormData) {
   }
   if (!Number.isFinite(videoDurationSeconds) || videoDurationSeconds <= 0) {
     throw new Error("Duracao do video invalida.");
-  }
-  if (!Number.isFinite(pitchTimestampSeconds) || pitchTimestampSeconds < 0) {
-    throw new Error("Timestamp do CTA invalido.");
-  }
-  if (ctaDesaparecerSegundos !== undefined && Number.isNaN(ctaDesaparecerSegundos)) {
-    throw new Error("Tempo em que a oferta some invalido.");
   }
   if (tipoAgendamento === "agendado" && !agendadoDataHoraInicio) {
     throw new Error("Defina a data e hora de inicio do agendamento.");
@@ -129,10 +109,6 @@ function parseWebinarFormData(formData: FormData) {
     slug,
     videoUrl,
     videoDurationSeconds,
-    pitchTimestampSeconds,
-    ctaTexto,
-    ctaLink,
-    ctaDesaparecerSegundos,
     tipoAgendamento,
     sincronizarVideoComHorario,
     ativo,
@@ -142,13 +118,6 @@ function parseWebinarFormData(formData: FormData) {
     agendadoDataHoraInicio,
     agendadoDataHoraFim,
     agendadoRepeticao,
-    ofertaNome,
-    ofertaTitulo,
-    ofertaImagemUrl,
-    ofertaDescricao,
-    precoOriginal,
-    precoOferta,
-    ctaCountdownMinutos,
     metaPixelId,
     audienciaFakeMin,
     audienciaFakeMax,
@@ -162,6 +131,10 @@ function parseWebinarFormData(formData: FormData) {
 
 export async function createWebinar(formData: FormData) {
   const data = parseWebinarFormData(formData);
+  // A criacao ainda inclui a etapa "Oferta" no proprio wizard (o webinario
+  // ainda nao tem id pra ter canais nessa hora) - so na edicao ela vira a
+  // pagina /oferta, separada.
+  const oferta = parseOfertaCampos(formData);
 
   await prisma.webinar.create({
     data: {
@@ -169,10 +142,10 @@ export async function createWebinar(formData: FormData) {
       slug: data.slug,
       videoUrl: data.videoUrl,
       videoDurationSeconds: data.videoDurationSeconds,
-      pitchTimestampSeconds: data.pitchTimestampSeconds,
-      ctaTexto: data.ctaTexto,
-      ctaLink: data.ctaLink,
-      ctaDesaparecerSegundos: data.ctaDesaparecerSegundos,
+      pitchTimestampSeconds: oferta.pitchTimestampSeconds,
+      ctaTexto: oferta.ctaTexto,
+      ctaLink: oferta.ctaLink,
+      ctaDesaparecerSegundos: oferta.ctaDesaparecerSegundos,
       tipoAgendamento: data.tipoAgendamento,
       sincronizarVideoComHorario: data.sincronizarVideoComHorario,
       ativo: data.ativo,
@@ -182,13 +155,14 @@ export async function createWebinar(formData: FormData) {
       agendadoDataHoraInicio: data.agendadoDataHoraInicio,
       agendadoDataHoraFim: data.agendadoDataHoraFim,
       agendadoRepeticao: data.tipoAgendamento === "agendado" ? data.agendadoRepeticao : undefined,
-      ofertaNome: data.ofertaNome,
-      ofertaTitulo: data.ofertaTitulo,
-      ofertaImagemUrl: data.ofertaImagemUrl,
-      ofertaDescricao: data.ofertaDescricao,
-      precoOriginal: data.precoOriginal,
-      precoOferta: data.precoOferta,
-      ctaCountdownMinutos: data.ctaCountdownMinutos,
+      ofertaNome: oferta.ofertaNome,
+      ofertaTitulo: oferta.ofertaTitulo,
+      ofertaImagemUrl: oferta.ofertaImagemUrl,
+      ofertaDescricao: oferta.ofertaDescricao,
+      precoOriginal: oferta.precoOriginal,
+      precoOferta: oferta.precoOferta,
+      precoParcelado: oferta.precoParcelado,
+      ctaCountdownMinutos: oferta.ctaCountdownMinutos,
       metaPixelId: data.metaPixelId,
       audienciaFakeMin: data.audienciaFakeMin,
       audienciaFakeMax: data.audienciaFakeMax,
@@ -204,6 +178,8 @@ export async function createWebinar(formData: FormData) {
   redirect("/admin/webinars");
 }
 
+// A oferta (nome, preco, CTA...) nao e tocada aqui: a edicao dela agora vive
+// em /admin/webinars/[id]/oferta, junto dos canais de oferta.
 export async function updateWebinar(id: string, formData: FormData) {
   const data = parseWebinarFormData(formData);
 
@@ -214,10 +190,6 @@ export async function updateWebinar(id: string, formData: FormData) {
       slug: data.slug,
       videoUrl: data.videoUrl,
       videoDurationSeconds: data.videoDurationSeconds,
-      pitchTimestampSeconds: data.pitchTimestampSeconds,
-      ctaTexto: data.ctaTexto,
-      ctaLink: data.ctaLink,
-      ctaDesaparecerSegundos: data.ctaDesaparecerSegundos ?? null,
       tipoAgendamento: data.tipoAgendamento,
       sincronizarVideoComHorario: data.sincronizarVideoComHorario,
       ativo: data.ativo,
@@ -229,13 +201,6 @@ export async function updateWebinar(id: string, formData: FormData) {
       agendadoDataHoraInicio: data.agendadoDataHoraInicio ?? null,
       agendadoDataHoraFim: data.agendadoDataHoraFim ?? null,
       agendadoRepeticao: data.tipoAgendamento === "agendado" ? data.agendadoRepeticao : null,
-      ofertaNome: data.ofertaNome ?? null,
-      ofertaTitulo: data.ofertaTitulo ?? null,
-      ofertaImagemUrl: data.ofertaImagemUrl ?? null,
-      ofertaDescricao: data.ofertaDescricao ?? null,
-      precoOriginal: data.precoOriginal ?? null,
-      precoOferta: data.precoOferta ?? null,
-      ctaCountdownMinutos: data.ctaCountdownMinutos ?? null,
       metaPixelId: data.metaPixelId ?? null,
       audienciaFakeMin: data.audienciaFakeMin ?? null,
       audienciaFakeMax: data.audienciaFakeMax ?? null,

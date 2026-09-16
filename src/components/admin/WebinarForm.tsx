@@ -34,6 +34,7 @@ type WebinarFormValues = {
   ofertaDescricao: string;
   precoOriginal: number | null;
   precoOferta: number | null;
+  precoParcelado: string;
   ctaCountdownMinutos: number | null;
   metaPixelId: string;
   audienciaFakeMin: number | null;
@@ -80,6 +81,7 @@ const DEFAULTS: WebinarFormValues = {
   ofertaDescricao: "",
   precoOriginal: null,
   precoOferta: null,
+  precoParcelado: "",
   ctaCountdownMinutos: null,
   metaPixelId: "",
   audienciaFakeMin: null,
@@ -99,14 +101,14 @@ const DEFAULTS: WebinarFormValues = {
 const inputClass =
   "w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm outline-none focus:border-emerald-500";
 
-const FORM_STEPS: { key: WebinarStepKey; label: string; icon: typeof IconInicio }[] = [
-  { key: "inicio", label: "Início", icon: IconInicio },
-  { key: "agendamento", label: "Agendamento", icon: IconAgendamento },
-  { key: "visual", label: "Visual", icon: IconVisual },
-  { key: "oferta", label: "Oferta", icon: IconOferta },
-  { key: "audiencia", label: "Audiência", icon: IconAudiencia },
-  { key: "integracoes", label: "Integrações", icon: IconIntegracoes },
-];
+type StepDef = { key: WebinarStepKey; label: string; icon: typeof IconInicio };
+
+const STEP_INICIO: StepDef = { key: "inicio", label: "Início", icon: IconInicio };
+const STEP_AGENDAMENTO: StepDef = { key: "agendamento", label: "Agendamento", icon: IconAgendamento };
+const STEP_VISUAL: StepDef = { key: "visual", label: "Visual", icon: IconVisual };
+const STEP_OFERTA: StepDef = { key: "oferta", label: "Oferta", icon: IconOferta };
+const STEP_AUDIENCIA: StepDef = { key: "audiencia", label: "Audiência", icon: IconAudiencia };
+const STEP_INTEGRACOES: StepDef = { key: "integracoes", label: "Integrações", icon: IconIntegracoes };
 
 export function WebinarForm({ action, initialValues, submitLabel, webinarId, initialStep }: WebinarFormProps) {
   const values = { ...DEFAULTS, ...initialValues };
@@ -119,19 +121,32 @@ export function WebinarForm({ action, initialValues, submitLabel, webinarId, ini
   const [corTexto, setCorTexto] = useState(values.corTexto);
   const [fonteSala, setFonteSala] = useState<FonteSala>(values.fonteSala);
 
-  const stepIndex = FORM_STEPS.findIndex((s) => s.key === step);
-  const isLastStep = stepIndex === FORM_STEPS.length - 1;
+  // Editando um webinario existente, "Oferta" sai do wizard e vira pagina
+  // propria (junto dos canais de oferta - assim os dois ficam num so lugar,
+  // em vez de espalhados em duas abas). So fica inline na criacao, quando
+  // ainda nao ha id pra vincular canais.
+  const formSteps: StepDef[] = webinarId
+    ? [STEP_INICIO, STEP_AGENDAMENTO, STEP_VISUAL, STEP_AUDIENCIA, STEP_INTEGRACOES]
+    : [STEP_INICIO, STEP_AGENDAMENTO, STEP_VISUAL, STEP_OFERTA, STEP_AUDIENCIA, STEP_INTEGRACOES];
 
-  const stepperSteps = [
-    ...FORM_STEPS.map((s) => ({ key: s.key, label: s.label, icon: s.icon, onClick: () => setStep(s.key) })),
-    ...(webinarId
-      ? [
-          { key: "links" as const, label: "Links", icon: IconLinks, href: `/admin/webinars/${webinarId}/links` },
-          { key: "chat" as const, label: "Chat Fake", icon: IconChat, href: `/admin/webinars/${webinarId}/chat` },
-          { key: "preview" as const, label: "Preview", icon: IconPreview, href: `/admin/webinars/${webinarId}/preview` },
-        ]
-      : []),
-  ];
+  const stepIndex = formSteps.findIndex((s) => s.key === step);
+  const isLastStep = stepIndex === formSteps.length - 1;
+
+  const asStep = (s: StepDef) => ({ key: s.key, label: s.label, icon: s.icon, onClick: () => setStep(s.key) });
+
+  const stepperSteps = webinarId
+    ? [
+        asStep(STEP_INICIO),
+        asStep(STEP_AGENDAMENTO),
+        asStep(STEP_VISUAL),
+        { key: "oferta" as const, label: "Oferta", icon: IconOferta, href: `/admin/webinars/${webinarId}/oferta` },
+        asStep(STEP_AUDIENCIA),
+        asStep(STEP_INTEGRACOES),
+        { key: "links" as const, label: "Links", icon: IconLinks, href: `/admin/webinars/${webinarId}/links` },
+        { key: "chat" as const, label: "Chat Fake", icon: IconChat, href: `/admin/webinars/${webinarId}/chat` },
+        { key: "preview" as const, label: "Preview", icon: IconPreview, href: `/admin/webinars/${webinarId}/preview` },
+      ]
+    : formSteps.map(asStep);
 
   function goToStep(key: WebinarStepKey) {
     setStep(key);
@@ -139,11 +154,11 @@ export function WebinarForm({ action, initialValues, submitLabel, webinarId, ini
   }
 
   function handleContinuar() {
-    if (stepIndex < FORM_STEPS.length - 1) goToStep(FORM_STEPS[stepIndex + 1].key);
+    if (stepIndex < formSteps.length - 1) goToStep(formSteps[stepIndex + 1].key);
   }
 
   function handleVoltar() {
-    if (stepIndex > 0) goToStep(FORM_STEPS[stepIndex - 1].key);
+    if (stepIndex > 0) goToStep(formSteps[stepIndex - 1].key);
   }
 
   return (
@@ -363,6 +378,9 @@ export function WebinarForm({ action, initialValues, submitLabel, webinarId, ini
           </Section>
         </div>
 
+        {/* So existe inline na criacao (ainda nao ha id pra ter canais). Editando,
+            "Oferta" vira a pagina /oferta, junto dos canais de oferta. */}
+        {!webinarId && (
         <div hidden={step !== "oferta"}>
           <Section title="Oferta" description="Tudo que aparece no bloco de oferta, logo abaixo do vídeo.">
             <Field label="Nome da oferta (rótulo curto, opcional)">
@@ -460,6 +478,15 @@ export function WebinarForm({ action, initialValues, submitLabel, webinarId, ini
               </Field>
             </div>
 
+            <Field label="Preço parcelado (texto livre, opcional)">
+              <input
+                name="precoParcelado"
+                defaultValue={values.precoParcelado}
+                placeholder="Ex: 10x de R$ 19,90"
+                className={inputClass}
+              />
+            </Field>
+
             <Field label="Contagem regressiva de urgência (minutos a partir do CTA, opcional)">
               <input
                 type="number"
@@ -472,6 +499,7 @@ export function WebinarForm({ action, initialValues, submitLabel, webinarId, ini
             </Field>
           </Section>
         </div>
+        )}
 
         <div hidden={step !== "audiencia"}>
           <Section title="Audiência" description="Faixa do contador de espectadores fake exibido na sala.">

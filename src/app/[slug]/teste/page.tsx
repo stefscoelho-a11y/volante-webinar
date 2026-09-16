@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { extractYouTubeId } from "@/lib/youtube";
 import { AdminPreview } from "@/components/admin/AdminPreview";
 import { AvisoPagina } from "@/components/AvisoPagina";
+import { encontrarCanal, resolverOferta } from "@/lib/canaisOferta";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 type SalaTestePageProps = {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ k?: string }>;
+  searchParams: Promise<{ k?: string; c?: string }>;
 };
 
 /**
@@ -21,11 +22,14 @@ type SalaTestePageProps = {
  */
 export default async function SalaTestePage({ params, searchParams }: SalaTestePageProps) {
   const { slug } = await params;
-  const { k } = await searchParams;
+  const { k, c: canalDaUrl } = await searchParams;
 
   const webinar = await prisma.webinar.findUnique({
     where: { slug },
-    include: { chatMessages: { orderBy: [{ timestampSegundos: "asc" }, { ordem: "asc" }] } },
+    include: {
+      chatMessages: { orderBy: [{ timestampSegundos: "asc" }, { ordem: "asc" }] },
+      canais: true,
+    },
   });
   if (!webinar || !k || k !== webinar.tokenSalaTeste) notFound();
 
@@ -34,10 +38,14 @@ export default async function SalaTestePage({ params, searchParams }: SalaTesteP
     return <AvisoPagina titulo="Vídeo do webinário não configurado corretamente." />;
   }
 
+  const canalEncontrado = encontrarCanal(webinar.canais, canalDaUrl ?? null, null);
+  const oferta = resolverOferta(webinar, canalEncontrado);
+
   return (
     <div>
       <div className="bg-amber-100 px-4 py-2 text-center text-xs font-medium text-amber-900">
         Sala teste: ignora o agendamento, não registra cadastros e não dispara o Meta Pixel.
+        {canalEncontrado && <span className="font-semibold"> Canal: {canalEncontrado.nome}.</span>}
       </div>
       <AdminPreview
         webinarId={webinar.id}
@@ -45,17 +53,18 @@ export default async function SalaTestePage({ params, searchParams }: SalaTesteP
         videoId={videoId}
         videoDurationSeconds={webinar.videoDurationSeconds}
         sincronizarVideoComHorario={webinar.sincronizarVideoComHorario}
-        ctaTexto={webinar.ctaTexto}
-        ctaLink={webinar.ctaLink}
+        ctaTexto={oferta.ctaTexto}
+        ctaLink={oferta.ctaLink}
         pitchTimestampSeconds={webinar.pitchTimestampSeconds}
-        ctaDesaparecerSegundos={webinar.ctaDesaparecerSegundos}
-        ofertaNome={webinar.ofertaNome}
-        ofertaTitulo={webinar.ofertaTitulo}
-        ofertaImagemUrl={webinar.ofertaImagemUrl}
-        ofertaDescricao={webinar.ofertaDescricao}
-        precoOriginal={webinar.precoOriginal}
-        precoOferta={webinar.precoOferta}
-        ctaCountdownMinutos={webinar.ctaCountdownMinutos}
+        ctaDesaparecerSegundos={oferta.ctaDesaparecerSegundos}
+        ofertaNome={oferta.ofertaNome}
+        ofertaTitulo={oferta.ofertaTitulo}
+        ofertaImagemUrl={oferta.ofertaImagemUrl}
+        ofertaDescricao={oferta.ofertaDescricao}
+        precoOriginal={oferta.precoOriginal}
+        precoOferta={oferta.precoOferta}
+        precoParcelado={oferta.precoParcelado}
+        ctaCountdownMinutos={oferta.ctaCountdownMinutos}
         metaPixelId={null}
         audienciaFakeMin={webinar.audienciaFakeMin}
         audienciaFakeMax={webinar.audienciaFakeMax}

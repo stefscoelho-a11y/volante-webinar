@@ -11,6 +11,9 @@ type WebinarLinksPanelProps = {
   justInTimeDisponivel: boolean;
   replayAtivo: boolean;
   regenerarTokenAction: () => void | Promise<void>;
+  // Quando definido, aplica ?c=<slug> em todos os links abaixo: e o mesmo
+  // conjunto de links padrao, so que apontando pra oferta desse canal.
+  canalSlug?: string;
 };
 
 export function WebinarLinksPanel({
@@ -19,6 +22,7 @@ export function WebinarLinksPanel({
   justInTimeDisponivel,
   replayAtivo,
   regenerarTokenAction,
+  canalSlug,
 }: WebinarLinksPanelProps) {
   // O endereco so existe no navegador: no servidor e na hidratacao fica vazio.
   const origin = useSyncExternalStore(semInscricao, () => getPublicBaseUrl(window.location.origin), () => "");
@@ -26,14 +30,15 @@ export function WebinarLinksPanel({
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   const ferramenta = FERRAMENTAS_EMAIL.find((item) => item.key === ferramentaKey) ?? FERRAMENTAS_EMAIL[0];
-  const magic = magicLinkQuery(ferramenta);
+  const magic = magicLinkQuery(ferramenta) + (canalSlug ? `&c=${encodeURIComponent(canalSlug)}` : "");
+  const canalQuery = canalSlug ? { c: canalSlug } : undefined;
   const avisoJustInTime = justInTimeDisponivel ? null : "Desativado: habilite o just in time nas configurações abaixo.";
 
   const links = [
     {
       key: "principal",
       label: "Sala principal",
-      path: webinarPath(slug),
+      path: webinarPath(slug, undefined, canalQuery),
       desc: "Acesso dos participantes à sala. Segue o agendamento e, se o cadastro estiver ligado, pede nome e email antes.",
       aviso: null,
     },
@@ -47,7 +52,7 @@ export function WebinarLinksPanel({
     {
       key: "just_in_time",
       label: "Sala com just in time",
-      path: webinarPath(slug, "jit"),
+      path: webinarPath(slug, "jit", canalQuery),
       desc: "Leva ao cadastro just in time: a sala abre alguns minutos depois que a pessoa se cadastra.",
       aviso: avisoJustInTime,
     },
@@ -61,14 +66,14 @@ export function WebinarLinksPanel({
     {
       key: "teste",
       label: "Sala teste",
-      path: webinarPath(slug, "teste", { k: tokenSalaTeste }),
+      path: webinarPath(slug, "teste", { k: tokenSalaTeste, ...canalQuery }),
       desc: "Sala liberada para testes: ignora o agendamento, tem controles para pular no vídeo e não registra cadastros nem dispara o Pixel. Não divulgue.",
       aviso: null,
     },
     {
       key: "replay",
       label: "Sala com replay",
-      path: webinarPath(slug, "replay"),
+      path: webinarPath(slug, "replay", canalQuery),
       desc: "Gravação para depois do evento: só abre após a sessão e respeita o prazo configurado. Também aceita nome e email na URL.",
       aviso: replayAtivo ? null : "Desativado: habilite o replay nas configurações abaixo.",
     },
@@ -89,7 +94,11 @@ export function WebinarLinksPanel({
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold text-gray-900">Links</h2>
-          <p className="mt-0.5 text-xs text-gray-500">Um link para cada forma de acesso ao webinário.</p>
+          <p className="mt-0.5 text-xs text-gray-500">
+            {canalSlug
+              ? "Os mesmos links padrão, já apontando para a oferta deste canal."
+              : "Um link para cada forma de acesso ao webinário."}
+          </p>
         </div>
         <label className="flex items-center gap-2 text-xs text-gray-500">
           Magic link para
@@ -138,7 +147,7 @@ export function WebinarLinksPanel({
               </div>
               <p className="mt-1.5 text-xs text-gray-500">{link.desc}</p>
               {link.aviso && <p className="mt-1 text-xs font-medium text-amber-700">{link.aviso}</p>}
-              {link.key === "teste" && (
+              {link.key === "teste" && !canalSlug && (
                 <form action={regenerarTokenAction}>
                   <button type="submit" className="mt-1 text-xs text-gray-500 underline hover:text-gray-800">
                     Gerar novo link de teste (o atual para de funcionar)

@@ -11,6 +11,7 @@ import {
   type RepeticaoAgendado,
 } from "@/lib/scheduling";
 import { webinarPath } from "@/lib/linksAcesso";
+import { encontrarCanal, lerCanalDaQuery, resolverOferta } from "@/lib/canaisOferta";
 import { getLeadAtual, leadCadastrado, participanteDoChat } from "@/lib/leads";
 import { SalaRoom } from "@/components/SalaRoom";
 import { AvisoPagina } from "@/components/AvisoPagina";
@@ -21,8 +22,8 @@ type PageProps = {
   params: Promise<{ slug: string }>;
   // a: token de acesso do participante; modo=jit: usa a sessao just in time
   // do participante; h: horario escolhido na entrada (tipo fixo). Nenhum
-  // horario arbitrario e aceito pela URL.
-  searchParams: Promise<{ a?: string; modo?: string; h?: string }>;
+  // horario arbitrario e aceito pela URL. c: slug do canal de oferta.
+  searchParams: Promise<{ a?: string; modo?: string; h?: string; c?: string }>;
 };
 
 function resolveSessionStart(
@@ -62,12 +63,13 @@ function resolveSessionStart(
 
 export default async function SalaPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
-  const { a: token, modo, h: horarioEscolhido } = await searchParams;
+  const { a: token, modo, h: horarioEscolhido, c: canalDaUrl } = await searchParams;
 
   const webinar = await prisma.webinar.findUnique({
     where: { slug },
     include: {
       chatMessages: { orderBy: [{ timestampSegundos: "asc" }, { ordem: "asc" }] },
+      canais: true,
     },
   });
   if (!webinar || !webinar.ativo) notFound();
@@ -109,6 +111,9 @@ export default async function SalaPage({ params, searchParams }: PageProps) {
     return <AvisoPagina titulo="Vídeo do webinário não configurado corretamente." />;
   }
 
+  const canalEncontrado = encontrarCanal(webinar.canais, canalDaUrl ?? null, lead?.canalOferta);
+  const oferta = resolverOferta(webinar, canalEncontrado);
+
   return (
     <SalaRoom
       webinarId={webinar.id}
@@ -118,18 +123,19 @@ export default async function SalaPage({ params, searchParams }: PageProps) {
       sessionStartIso={sessionStart.toISOString()}
       jaEncerradoNoCarregamento={jaEncerrado}
       sincronizarVideoComHorario={webinar.sincronizarVideoComHorario}
-      ctaTexto={webinar.ctaTexto}
-      ctaLink={webinar.ctaLink}
+      ctaTexto={oferta.ctaTexto}
+      ctaLink={oferta.ctaLink}
       pitchTimestampSeconds={webinar.pitchTimestampSeconds}
-      ctaDesaparecerSegundos={webinar.ctaDesaparecerSegundos}
-      ofertaNome={webinar.ofertaNome}
-      ofertaTitulo={webinar.ofertaTitulo}
-      ofertaImagemUrl={webinar.ofertaImagemUrl}
-      ofertaDescricao={webinar.ofertaDescricao}
-      precoOriginal={webinar.precoOriginal}
-      precoOferta={webinar.precoOferta}
-      ctaCountdownMinutos={webinar.ctaCountdownMinutos}
-      metaPixelId={webinar.metaPixelId}
+      ctaDesaparecerSegundos={oferta.ctaDesaparecerSegundos}
+      ofertaNome={oferta.ofertaNome}
+      ofertaTitulo={oferta.ofertaTitulo}
+      ofertaImagemUrl={oferta.ofertaImagemUrl}
+      ofertaDescricao={oferta.ofertaDescricao}
+      precoOriginal={oferta.precoOriginal}
+      precoOferta={oferta.precoOferta}
+      precoParcelado={oferta.precoParcelado}
+      ctaCountdownMinutos={oferta.ctaCountdownMinutos}
+      metaPixelId={oferta.metaPixelId}
       audienciaFakeMin={webinar.audienciaFakeMin}
       audienciaFakeMax={webinar.audienciaFakeMax}
       temaSala={webinar.temaSala}

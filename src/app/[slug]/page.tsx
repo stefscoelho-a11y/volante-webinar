@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getAgendadoSessionStart, type RepeticaoAgendado } from "@/lib/scheduling";
 import { lerUtms, webinarPath } from "@/lib/linksAcesso";
+import { campoOcultoCanal, lerCanalDaQuery, queryCanal } from "@/lib/canaisOferta";
 import { getLeadAtual, leadCadastrado, redirecionarSeMagicLink } from "@/lib/leads";
 import { FixoScheduleSelector } from "@/components/FixoScheduleSelector";
 import { CadastroForm } from "@/components/CadastroForm";
@@ -40,16 +41,18 @@ export default async function SalaPrincipalPage({ params, searchParams }: SalaPr
         descricao="Preencha seus dados para entrar na sala."
         botao="Entrar na sala"
         action={cadastrar.bind(null, slug, "principal")}
-        camposOcultos={lerUtms(query)}
+        camposOcultos={{ ...lerUtms(query), ...campoOcultoCanal(query) }}
       />
     );
   }
+
+  const canal = lerCanalDaQuery(query);
 
   if (webinar.tipoAgendamento === "recorrente") {
     // Sem escolha do participante: a sala calcula a sessao alcancavel mais
     // proxima (a de agora ou a proxima, com contagem regressiva).
     if (!webinar.intervaloRecorrenciaMinutos) notFound();
-    redirect(webinarPath(slug, "sala"));
+    redirect(webinarPath(slug, "sala", queryCanal(canal)));
   }
 
   if (webinar.tipoAgendamento === "agendado") {
@@ -63,7 +66,7 @@ export default async function SalaPrincipalPage({ params, searchParams }: SalaPr
     if (!sessionStart) {
       return <AvisoPagina titulo={webinar.titulo} mensagem="Este webinário não está mais disponível." />;
     }
-    redirect(webinarPath(slug, "sala"));
+    redirect(webinarPath(slug, "sala", queryCanal(canal)));
   }
 
   const horariosFixos = Array.isArray(webinar.horariosFixos) ? (webinar.horariosFixos as string[]) : [];
@@ -73,6 +76,7 @@ export default async function SalaPrincipalPage({ params, searchParams }: SalaPr
       titulo={webinar.titulo}
       horariosFixos={horariosFixos}
       videoDurationSeconds={webinar.videoDurationSeconds}
+      canal={canal}
     />
   );
 }

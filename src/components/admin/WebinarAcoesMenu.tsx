@@ -6,6 +6,7 @@ import { useFormStatus } from "react-dom";
 import {
   Copy,
   Download,
+  Gift,
   Link2,
   MessageSquare,
   MoreVertical,
@@ -79,6 +80,10 @@ export function WebinarAcoesMenu({
           <Link role="menuitem" href={`${base}/links`} className={classeItem}>
             <Link2 className="h-4 w-4 text-gray-400" />
             Links
+          </Link>
+          <Link role="menuitem" href={`${base}/oferta`} className={classeItem}>
+            <Gift className="h-4 w-4 text-gray-400" />
+            Oferta e canais
           </Link>
           <Link role="menuitem" href={`/admin/ao-vivo/${webinarId}`} className={classeItem}>
             <Radio className="h-4 w-4 text-gray-400" />

@@ -30,6 +30,8 @@ model Webinar {
   ofertaDescricao             String?   @map("oferta_descricao")
   precoOriginal               Float?    @map("preco_original")
   precoOferta                 Float?    @map("preco_oferta")
+  // Texto livre do parcelamento (ex: "10x de R$ 19,90"), mostrado junto do preco
+  precoParcelado              String?   @map("preco_parcelado")
   // Minutos de contagem regressiva de urgencia a partir do momento que o CTA aparece
   ctaCountdownMinutos         Int?      @map("cta_countdown_minutos")
   // Segundo do video em que o CTA some (opcional - se nulo, fica ate o fim)
@@ -81,6 +83,7 @@ model Webinar {
   transcricao  Transcricao?
   comentarios  Comentario[]
   presencas    Presenca[]
+  canais       CanalOferta[]
 
   @@map("webinars")
 }
@@ -121,6 +124,9 @@ model Lead {
   // Sessao do participante: no just in time, cadastro + delay; nos demais
   // tipos, a primeira sessao em que entrou. Referencia pra liberar o replay.
   sessaoEscolhida DateTime? @map("sessao_escolhida")
+  // Slug do CanalOferta pelo qual entrou (?c= na URL), first-touch - igual
+  // origem/UTMs, fica gravado no primeiro acesso e nao muda depois.
+  canalOferta     String?   @map("canal_oferta")
   entrouEm        DateTime  @default(now()) @map("entrou_em")
   comentarios     Comentario[]
   presencas       Presenca[]
@@ -192,4 +198,36 @@ model Presenca {
   @@unique([webinarId, visitanteId])
   @@index([webinarId, ultimoSinal])
   @@map("presencas")
+}
+
+// Canal de venda de um webinar (ex: "Live trafego", "SMS organico"): cada um
+// tem seu proprio link (mesmos links padrao da sala, com ?c=<slug>) e pode
+// sobrescrever qualquer campo da oferta. Campo nulo aqui = usa o valor do
+// Webinar (ver resolverOferta em src/lib/canaisOferta.ts) - assim so precisa
+// preencher o que muda de canal pra canal, sem duplicar o webinar inteiro.
+model CanalOferta {
+  id        String  @id @default(cuid())
+  webinarId String  @map("webinar_id")
+  webinar   Webinar @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+  nome      String
+  // Identificador na URL (?c=slug), unico dentro do webinar
+  slug      String
+
+  ofertaNome             String? @map("oferta_nome")
+  ofertaTitulo           String? @map("oferta_titulo")
+  ofertaImagemUrl        String? @map("oferta_imagem_url")
+  ofertaDescricao        String? @map("oferta_descricao")
+  precoOriginal          Float?  @map("preco_original")
+  precoOferta            Float?  @map("preco_oferta")
+  precoParcelado         String? @map("preco_parcelado")
+  ctaTexto               String? @map("cta_texto")
+  ctaLink                String? @map("cta_link")
+  ctaCountdownMinutos    Int?    @map("cta_countdown_minutos")
+  ctaDesaparecerSegundos Int?    @map("cta_desaparecer_segundos")
+  metaPixelId            String? @map("meta_pixel_id")
+
+  criadoEm DateTime @default(now()) @map("criado_em")
+
+  @@unique([webinarId, slug])
+  @@map("canais_oferta")
 }

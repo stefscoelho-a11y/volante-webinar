@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import type { Webinar } from "@/generated/prisma/client";
 import { CadastroForm } from "@/components/CadastroForm";
 import { lerUtms, salaJustInTimePath, textoJustInTime, type ViaEntrada } from "@/lib/linksAcesso";
+import { campoOcultoCanal } from "@/lib/canaisOferta";
 import { getLeadAtual, leadCadastrado, sessaoJustInTimeAtiva } from "@/lib/leads";
 import { cadastrar } from "./actions";
 
@@ -28,7 +29,7 @@ export async function EntradaJustInTime({ webinar, via, query }: EntradaJustInTi
       descricao={textoJustInTime(webinar.delayJustInTimeMinutos ?? 0)}
       botao="Garantir minha vaga"
       action={cadastrar.bind(null, webinar.slug, via)}
-      camposOcultos={lerUtms(query)}
+      camposOcultos={{ ...lerUtms(query), ...campoOcultoCanal(query) }}
       nomeInicial={leadCadastrado(lead) ? lead.nome : undefined}
       emailInicial={lead?.email ?? undefined}
     />

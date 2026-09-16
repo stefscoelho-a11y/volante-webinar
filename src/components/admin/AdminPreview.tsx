@@ -20,6 +20,7 @@ type AdminPreviewProps = {
   ofertaDescricao: string | null;
   precoOriginal: number | null;
   precoOferta: number | null;
+  precoParcelado: string | null;
   ctaCountdownMinutos: number | null;
   metaPixelId: string | null;
   audienciaFakeMin: number | null;
@@ -52,6 +53,7 @@ export function AdminPreview({
   ofertaDescricao,
   precoOriginal,
   precoOferta,
+  precoParcelado,
   ctaCountdownMinutos,
   metaPixelId,
   audienciaFakeMin,
@@ -143,6 +145,7 @@ export function AdminPreview({
         ofertaDescricao={ofertaDescricao}
         precoOriginal={precoOriginal}
         precoOferta={precoOferta}
+        precoParcelado={precoParcelado}
         ctaCountdownMinutos={ctaCountdownMinutos}
         metaPixelId={metaPixelId}
         audienciaFakeMin={audienciaFakeMin}

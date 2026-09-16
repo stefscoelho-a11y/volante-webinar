@@ -42,6 +42,7 @@ export default async function PreviewPage({ params }: PreviewPageProps) {
         ofertaDescricao={webinar.ofertaDescricao}
         precoOriginal={webinar.precoOriginal}
         precoOferta={webinar.precoOferta}
+        precoParcelado={webinar.precoParcelado}
         ctaCountdownMinutos={webinar.ctaCountdownMinutos}
         metaPixelId={webinar.metaPixelId}
         audienciaFakeMin={webinar.audienciaFakeMin}

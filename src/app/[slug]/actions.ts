@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { lerDadosParticipante } from "@/lib/linksAcesso";
+import { lerCanalDaQuery } from "@/lib/canaisOferta";
 import {
   getLeadAtual,
   participanteDoChat,
@@ -38,10 +39,11 @@ export async function cadastrar(slug: string, via: string, formData: FormData) {
   const webinar = await prisma.webinar.findUnique({ where: { slug } });
   if (!webinar || !webinar.ativo) throw new Error("Webinário não encontrado.");
 
-  const dados = lerDadosParticipante(camposDoFormulario(formData));
+  const campos = camposDoFormulario(formData);
+  const dados = lerDadosParticipante(campos);
   if (!dados) throw new Error("Preencha nome e um email válido.");
 
-  const { lead, destino } = await registrarEntrada(webinar, dados, via, false);
+  const { lead, destino } = await registrarEntrada(webinar, dados, via, false, lerCanalDaQuery(campos));
   await salvarCookieLead(lead);
   redirect(destino);
 }

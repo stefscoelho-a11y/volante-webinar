@@ -7,7 +7,8 @@ import { updateWebinar } from "../../actions";
 
 export const dynamic = "force-dynamic";
 
-const STEP_KEYS: WebinarStepKey[] = ["inicio", "agendamento", "visual", "oferta", "audiencia", "integracoes"];
+// "Oferta" nao esta aqui: na edicao ela e a pagina /oferta, nao um `?step=`.
+const STEP_KEYS: WebinarStepKey[] = ["inicio", "agendamento", "visual", "audiencia", "integracoes"];
 
 type EditarWebinarPageProps = {
   params: Promise<{ id: string }>;
