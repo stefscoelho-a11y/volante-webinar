@@ -58,7 +58,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         <div className="mt-6 rounded-xl border border-gray-200 bg-white p-4">
           <p className="text-sm text-gray-500">
             Quer ver o funil completo de conversão de um webinário específico?{" "}
-            <Link href="/admin/funil" className="font-medium text-emerald-600 hover:text-emerald-700">
+            <Link href="/admin/funil" className="font-medium text-orange-600 hover:text-orange-700">
               Acesse o painel de funil
             </Link>
             .
@@ -93,7 +93,7 @@ function PeriodSelector({
             href={`/admin?range=${preset.key}`}
             className={`px-3 py-1.5 text-sm transition ${
               activeKey === preset.key
-                ? "bg-emerald-500 font-semibold text-neutral-950"
+                ? "bg-orange-500 font-semibold text-neutral-950"
                 : "text-gray-500 hover:bg-gray-100"
             }`}
           >

@@ -23,14 +23,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           type="password"
           autoFocus
           required
-          className="mb-3 w-full rounded border border-gray-300 bg-gray-100 px-3 py-2 text-sm outline-none focus:border-emerald-500"
+          className="mb-3 w-full rounded border border-gray-300 bg-gray-100 px-3 py-2 text-sm outline-none focus:border-orange-500"
         />
 
         {erro && <p className="mb-3 text-sm text-red-600">Senha incorreta.</p>}
 
         <button
           type="submit"
-          className="w-full rounded bg-emerald-500 px-3 py-2 text-sm font-semibold text-neutral-950 hover:bg-emerald-400"
+          className="w-full rounded bg-orange-500 px-3 py-2 text-sm font-semibold text-neutral-950 hover:bg-orange-400"
         >
           Entrar
         </button>

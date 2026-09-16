@@ -36,7 +36,7 @@ export function CadastroForm({
           name="nome"
           required
           defaultValue={nomeInicial}
-          className="mb-3 w-full rounded border border-gray-300 bg-gray-100 px-3 py-2 text-sm outline-none focus:border-emerald-500"
+          className="mb-3 w-full rounded border border-gray-300 bg-gray-100 px-3 py-2 text-sm outline-none focus:border-orange-500"
         />
 
         <label className="mb-1 block text-sm text-gray-500" htmlFor="email">
@@ -48,12 +48,12 @@ export function CadastroForm({
           type="email"
           required
           defaultValue={emailInicial}
-          className="mb-4 w-full rounded border border-gray-300 bg-gray-100 px-3 py-2 text-sm outline-none focus:border-emerald-500"
+          className="mb-4 w-full rounded border border-gray-300 bg-gray-100 px-3 py-2 text-sm outline-none focus:border-orange-500"
         />
 
         <button
           type="submit"
-          className="w-full rounded bg-emerald-500 px-3 py-2 text-sm font-semibold text-neutral-950 hover:bg-emerald-400"
+          className="w-full rounded bg-orange-500 px-3 py-2 text-sm font-semibold text-neutral-950 hover:bg-orange-400"
         >
           {botao}
         </button>

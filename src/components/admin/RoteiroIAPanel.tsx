@@ -30,7 +30,7 @@ type RoteiroIAPanelProps = {
 // de 1MB do body do Next antes mesmo da action rodar.
 const TAMANHO_MAXIMO_LEGENDA_BYTES = 900 * 1024;
 
-const inputClass = "rounded border border-gray-300 bg-gray-100 px-2 py-1 text-sm outline-none focus:border-emerald-500";
+const inputClass = "rounded border border-gray-300 bg-gray-100 px-2 py-1 text-sm outline-none focus:border-orange-500";
 const botaoSecundarioClass = "rounded bg-gray-100 px-3 py-1.5 text-sm text-gray-900 hover:bg-gray-300 disabled:opacity-50";
 
 export function RoteiroIAPanel({
@@ -214,7 +214,7 @@ export function RoteiroIAPanel({
           <button
             type="button"
             onClick={handleGerar}
-            className="rounded bg-emerald-500 px-3 py-1.5 text-sm font-semibold text-neutral-950 hover:bg-emerald-400"
+            className="rounded bg-orange-500 px-3 py-1.5 text-sm font-semibold text-neutral-950 hover:bg-orange-400"
           >
             {gerando ? "Gerando..." : "Gerar roteiro"}
           </button>
@@ -225,7 +225,7 @@ export function RoteiroIAPanel({
       {erro && <p className="mt-3 text-sm text-red-600">{erro}</p>}
 
       {resultado && (
-        <p className="mt-3 text-sm text-emerald-700">
+        <p className="mt-3 text-sm text-orange-700">
           {resultado.totalMensagens} mensagens {resultado.modo === "substituir" ? "carregadas" : "adicionadas"} no
           editor abaixo. Revise e clique em &quot;Salvar roteiro&quot;.
         </p>
@@ -241,7 +241,7 @@ export function RoteiroIAPanel({
             {pitch.justificativa && <p className="mt-1 text-xs text-gray-600">{pitch.justificativa}</p>}
             <div className="mt-2 flex flex-wrap items-center gap-3">
               {pitchAtual === pitch.timestampSegundos ? (
-                <span className="text-xs text-emerald-700">A oferta aparece nesse momento.</span>
+                <span className="text-xs text-orange-700">A oferta aparece nesse momento.</span>
               ) : (
                 <>
                   <button

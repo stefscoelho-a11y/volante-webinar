@@ -94,7 +94,7 @@ export function AdminPreview({
           <button
             type="button"
             onClick={() => applyElapsed(manualElapsed)}
-            className="rounded bg-emerald-500 px-3 py-1.5 text-sm font-semibold text-neutral-950 hover:bg-emerald-400"
+            className="rounded bg-orange-500 px-3 py-1.5 text-sm font-semibold text-neutral-950 hover:bg-orange-400"
           >
             Ir
           </button>

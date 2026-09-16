@@ -49,7 +49,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
                 className={`${classeItemMenu} ${
-                  active ? "bg-emerald-500/10 text-emerald-700" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  active ? "bg-orange-500/10 text-orange-700" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                 }`}
               >
                 <Icon className="h-[18px] w-[18px] shrink-0" />
@@ -79,11 +79,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 function Marca() {
   return (
     <Link href="/admin" className="flex items-center gap-2.5">
-      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500 text-neutral-950">
+      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500 text-neutral-950">
         <PlayCircle className="h-[18px] w-[18px]" />
       </span>
       <span className="text-lg font-bold tracking-tight text-gray-900">
-        Volante <span className="text-emerald-600">Webinar</span>
+        Volante <span className="text-orange-600">Webinar</span>
       </span>
     </Link>
   );

@@ -14,7 +14,7 @@ type LinksAcessoConfigFormProps = {
 };
 
 const inputClass =
-  "w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm outline-none focus:border-emerald-500";
+  "w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm outline-none focus:border-orange-500";
 
 export function LinksAcessoConfigForm({ action, tipoAgendamento, values }: LinksAcessoConfigFormProps) {
   return (
@@ -102,7 +102,7 @@ export function LinksAcessoConfigForm({ action, tipoAgendamento, values }: Links
       <div className="flex justify-end">
         <button
           type="submit"
-          className="rounded-lg bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-neutral-950 hover:bg-emerald-400"
+          className="rounded-lg bg-orange-500 px-5 py-2.5 text-sm font-semibold text-neutral-950 hover:bg-orange-400"
         >
           Salvar configurações
         </button>

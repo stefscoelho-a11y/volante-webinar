@@ -82,7 +82,7 @@ export default async function WebinarsListPage({ searchParams }: WebinarsListPag
           <ImportarWebinarDialog />
           <Link
             href="/admin/webinars/novo"
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-emerald-500 px-4 text-sm font-semibold text-neutral-950 shadow-sm transition hover:bg-emerald-400"
+            className="inline-flex h-10 items-center gap-2 rounded-lg bg-orange-500 px-4 text-sm font-semibold text-neutral-950 shadow-sm transition hover:bg-orange-400"
           >
             <Plus className="h-4 w-4" />
             Criar novo
@@ -107,7 +107,7 @@ export default async function WebinarsListPage({ searchParams }: WebinarsListPag
 
         {webinars.length === 0 ? (
           <div className="flex flex-col items-center px-6 py-16 text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-50 text-orange-600">
               <MonitorPlay className="h-6 w-6" />
             </span>
             <p className="mt-4 text-sm font-medium text-gray-900">
@@ -133,7 +133,7 @@ export default async function WebinarsListPage({ searchParams }: WebinarsListPag
                     <div className="min-w-0" title={webinarPath(webinar.slug)}>
                       <Link
                         href={editarHref}
-                        className="line-clamp-2 text-[15px] font-medium leading-snug text-gray-900 hover:text-emerald-700"
+                        className="line-clamp-2 text-[15px] font-medium leading-snug text-gray-900 hover:text-orange-700"
                       >
                         {webinar.titulo}
                       </Link>
@@ -141,11 +141,11 @@ export default async function WebinarsListPage({ searchParams }: WebinarsListPag
                       {assistindo > 0 && (
                         <Link
                           href={`/admin/ao-vivo/${webinar.id}`}
-                          className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 hover:text-emerald-800"
+                          className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium text-orange-700 hover:text-orange-800"
                         >
                           <span className="relative flex h-2 w-2">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-75" />
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-orange-500" />
                           </span>
                           {assistindo} assistindo agora
                         </Link>
@@ -158,7 +158,7 @@ export default async function WebinarsListPage({ searchParams }: WebinarsListPag
                       <StatusBadge ativo={webinar.ativo} />
                     </div>
                     <div>
-                      <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+                      <span className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-2.5 py-0.5 text-xs font-medium text-orange-700">
                         {rotuloTipoAgendamento(webinar.tipoAgendamento)}
                       </span>
                     </div>
@@ -231,10 +231,10 @@ function StatusBadge({ ativo }: { ativo: boolean }) {
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-        ativo ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-600"
+        ativo ? "bg-orange-50 text-orange-700" : "bg-gray-100 text-gray-600"
       }`}
     >
-      <span className={`h-1.5 w-1.5 rounded-full ${ativo ? "bg-emerald-500" : "bg-gray-400"}`} />
+      <span className={`h-1.5 w-1.5 rounded-full ${ativo ? "bg-orange-500" : "bg-gray-400"}`} />
       {ativo ? "Ativo" : "Inativo"}
     </span>
   );

@@ -38,7 +38,7 @@ type CanalOfertaFormProps = {
 };
 
 const inputClass =
-  "w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm outline-none placeholder:text-gray-400 focus:border-emerald-500";
+  "w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm outline-none placeholder:text-gray-400 focus:border-orange-500";
 
 export function CanalOfertaForm({ action, values, botao, webinarBase }: CanalOfertaFormProps) {
   return (
@@ -188,7 +188,7 @@ export function CanalOfertaForm({ action, values, botao, webinarBase }: CanalOfe
       <div className="flex justify-end">
         <button
           type="submit"
-          className="rounded-lg bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-neutral-950 hover:bg-emerald-400"
+          className="rounded-lg bg-orange-500 px-5 py-2.5 text-sm font-semibold text-neutral-950 hover:bg-orange-400"
         >
           {botao}
         </button>

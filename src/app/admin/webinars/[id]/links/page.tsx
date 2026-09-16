@@ -27,7 +27,7 @@ export default async function LinksPage({ params, searchParams }: LinksPageProps
 
       <div className="max-w-2xl space-y-6 pb-16">
         {salvo && (
-          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-4 py-2 text-sm text-emerald-700">
+          <div className="rounded-lg border border-orange-500/30 bg-orange-500/5 px-4 py-2 text-sm text-orange-700">
             Configurações salvas.
           </div>
         )}

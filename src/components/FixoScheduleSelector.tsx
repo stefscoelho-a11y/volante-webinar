@@ -64,12 +64,12 @@ export function FixoScheduleSelector({
                 className={`flex w-full items-center justify-between rounded border px-4 py-3 text-left transition ${
                   encerrado
                     ? "cursor-not-allowed border-gray-200 text-gray-400"
-                    : "border-gray-300 bg-white hover:border-emerald-500"
+                    : "border-gray-300 bg-white hover:border-orange-500"
                 }`}
               >
                 <span className="font-medium">{horario}</span>
                 {encerrado && <span className="text-xs">Encerrado hoje</span>}
-                {aoVivo && <span className="text-xs font-semibold text-emerald-600">Ao vivo agora</span>}
+                {aoVivo && <span className="text-xs font-semibold text-orange-600">Ao vivo agora</span>}
                 {!encerrado && !aoVivo && (
                   <span className="text-xs text-gray-500" suppressHydrationWarning>
                     Comeca em {formatCountdown(secondsUntil)}

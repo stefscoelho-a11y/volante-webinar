@@ -37,7 +37,7 @@ export default async function AoVivoPage() {
 
         {ordenados.length === 0 ? (
           <div className="flex flex-col items-center rounded-xl border border-gray-200 bg-white px-6 py-16 text-center">
-            <MonitorPlay className="h-6 w-6 text-emerald-600" />
+            <MonitorPlay className="h-6 w-6 text-orange-600" />
             <p className="mt-3 text-sm text-gray-500">Nenhum webinário criado ainda.</p>
           </div>
         ) : (
@@ -48,7 +48,7 @@ export default async function AoVivoPage() {
                 <li key={webinar.id}>
                   <Link
                     href={`/admin/ao-vivo/${webinar.id}`}
-                    className="group flex h-full items-center gap-4 rounded-xl border border-gray-200 bg-white p-4 transition hover:border-emerald-300 hover:shadow-sm"
+                    className="group flex h-full items-center gap-4 rounded-xl border border-gray-200 bg-white p-4 transition hover:border-orange-300 hover:shadow-sm"
                   >
                     <div className="min-w-0 flex-1">
                       <p className="line-clamp-2 text-[15px] font-medium leading-snug text-gray-900">{webinar.titulo}</p>
@@ -57,14 +57,14 @@ export default async function AoVivoPage() {
                       </p>
                       <p
                         className={`mt-2 inline-flex items-center gap-1.5 text-sm font-medium ${
-                          assistindo > 0 ? "text-emerald-700" : "text-gray-400"
+                          assistindo > 0 ? "text-orange-700" : "text-gray-400"
                         }`}
                       >
                         <PontoAoVivo ativo={assistindo > 0} />
                         {assistindo} assistindo agora
                       </p>
                     </div>
-                    <ChevronRight className="h-5 w-5 shrink-0 text-gray-300 transition group-hover:text-emerald-600" />
+                    <ChevronRight className="h-5 w-5 shrink-0 text-gray-300 transition group-hover:text-orange-600" />
                   </Link>
                 </li>
               );
@@ -80,8 +80,8 @@ function PontoAoVivo({ ativo }: { ativo: boolean }) {
   if (!ativo) return <span className="inline-flex h-2 w-2 shrink-0 rounded-full bg-gray-300" />;
   return (
     <span className="relative flex h-2 w-2 shrink-0">
-      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-      <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-60" />
+      <span className="relative inline-flex h-2 w-2 rounded-full bg-orange-500" />
     </span>
   );
 }

@@ -99,7 +99,7 @@ const DEFAULTS: WebinarFormValues = {
 };
 
 const inputClass =
-  "w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm outline-none focus:border-emerald-500";
+  "w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm outline-none focus:border-orange-500";
 
 type StepDef = { key: WebinarStepKey; label: string; icon: typeof IconInicio };
 
@@ -228,7 +228,7 @@ export function WebinarForm({ action, initialValues, submitLabel, webinarId, ini
                   Sala principal, magic link, just in time, sala teste e replay ficam na etapa{" "}
                   <Link
                     href={`/admin/webinars/${webinarId}/links`}
-                    className="font-medium text-emerald-600 hover:text-emerald-700"
+                    className="font-medium text-orange-600 hover:text-orange-700"
                   >
                     Links
                   </Link>
@@ -559,7 +559,7 @@ export function WebinarForm({ action, initialValues, submitLabel, webinarId, ini
           {isLastStep ? (
             <button
               type="submit"
-              className="rounded-lg bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-neutral-950 hover:bg-emerald-400"
+              className="rounded-lg bg-orange-500 px-5 py-2.5 text-sm font-semibold text-neutral-950 hover:bg-orange-400"
             >
               {submitLabel}
             </button>
@@ -567,7 +567,7 @@ export function WebinarForm({ action, initialValues, submitLabel, webinarId, ini
             <button
               type="button"
               onClick={handleContinuar}
-              className="rounded-lg bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-neutral-950 hover:bg-emerald-400"
+              className="rounded-lg bg-orange-500 px-5 py-2.5 text-sm font-semibold text-neutral-950 hover:bg-orange-400"
             >
               Continuar
             </button>
@@ -595,7 +595,7 @@ function ThemeOption({
     <label
       className={`group cursor-pointer rounded-xl border p-3 transition duration-200 ${
         checked
-          ? "border-emerald-500 bg-emerald-50 shadow-[0_0_0_2px_rgba(16,185,129,0.12)]"
+          ? "border-orange-500 bg-orange-50 shadow-[0_0_0_2px_rgba(16,185,129,0.12)]"
           : "border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-white"
       }`}
     >
@@ -633,7 +633,7 @@ function ColorField({
 
   return (
     <Field label={label}>
-      <div className="flex overflow-hidden rounded-lg border border-gray-300 bg-gray-100 focus-within:border-emerald-500">
+      <div className="flex overflow-hidden rounded-lg border border-gray-300 bg-gray-100 focus-within:border-orange-500">
         <input
           type="color"
           value={pickerValue}
@@ -716,7 +716,7 @@ function UrlAmigavelField({ defaultValue }: { defaultValue: string }) {
   }, []);
 
   return (
-    <div className="flex items-stretch overflow-hidden rounded-lg border border-gray-300 bg-gray-100 focus-within:border-emerald-500">
+    <div className="flex items-stretch overflow-hidden rounded-lg border border-gray-300 bg-gray-100 focus-within:border-orange-500">
       <span className="flex items-center whitespace-nowrap border-r border-gray-300 bg-gray-200 px-3 text-sm text-gray-500">
         {origin || "seu-dominio"}/
       </span>

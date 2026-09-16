@@ -36,7 +36,7 @@ function randomKey(): string {
 // Sem w-full aqui de proposito: cada input abaixo define sua propria largura
 // (w-20/w-28/w-32/flex-1) e "w-full" empataria na especificidade do Tailwind,
 // vencendo de forma imprevisivel dependendo da ordem de geracao do CSS.
-const inputClass = "rounded border border-gray-300 bg-gray-100 px-2 py-1 text-sm outline-none focus:border-emerald-500";
+const inputClass = "rounded border border-gray-300 bg-gray-100 px-2 py-1 text-sm outline-none focus:border-orange-500";
 
 export function ChatScriptEditor({
   webinarId,
@@ -149,11 +149,11 @@ export function ChatScriptEditor({
             type="button"
             onClick={handleSave}
             disabled={pending}
-            className="rounded bg-emerald-500 px-3 py-1.5 text-sm font-semibold text-neutral-950 hover:bg-emerald-400 disabled:opacity-50"
+            className="rounded bg-orange-500 px-3 py-1.5 text-sm font-semibold text-neutral-950 hover:bg-orange-400 disabled:opacity-50"
           >
             {pending ? "Salvando..." : "Salvar roteiro"}
           </button>
-          {savedAt && !pending && <span className="text-xs text-emerald-600">Salvo!</span>}
+          {savedAt && !pending && <span className="text-xs text-orange-600">Salvo!</span>}
         </div>
 
         <div className="space-y-2">
@@ -244,13 +244,13 @@ export function ChatScriptEditor({
                   {message.texto}
                 </p>
               ) : message.tipo === "suporte" ? (
-                <div key={message.key} className="rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs">
-                  <span className="font-semibold text-emerald-700">{message.nomeAutor || "Suporte"} (suporte): </span>
+                <div key={message.key} className="rounded border border-orange-200 bg-orange-50 px-2 py-1 text-xs">
+                  <span className="font-semibold text-orange-700">{message.nomeAutor || "Suporte"} (suporte): </span>
                   <span className="break-words text-gray-800">{message.texto}</span>
                 </div>
               ) : (
                 <div key={message.key} className="text-xs">
-                  <span className="font-semibold text-emerald-600">{message.nomeAutor || "Anonimo"}: </span>
+                  <span className="font-semibold text-orange-600">{message.nomeAutor || "Anonimo"}: </span>
                   <span className="text-gray-800">{message.texto}</span>
                 </div>
               ),

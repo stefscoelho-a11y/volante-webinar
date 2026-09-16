@@ -43,7 +43,7 @@ export function FiltrosWebinars({ q, status, tipo, ordem }: FiltrosWebinarsProps
           name="q"
           defaultValue={q}
           placeholder="Pesquisar por nome ou URL"
-          className="h-10 w-full rounded-lg border border-gray-200 bg-white pl-9 pr-3 text-sm text-gray-900 shadow-sm outline-none transition placeholder:text-gray-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15"
+          className="h-10 w-full rounded-lg border border-gray-200 bg-white pl-9 pr-3 text-sm text-gray-900 shadow-sm outline-none transition placeholder:text-gray-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/15"
         />
       </label>
       <Select nome="ordem" rotulo="Ordenar" valor={ordem} opcoes={OPCOES_ORDEM} />
@@ -75,7 +75,7 @@ function Select({
       <select
         name={nome}
         defaultValue={valor}
-        className="h-10 cursor-pointer appearance-none rounded-lg border border-gray-200 bg-white pl-3 pr-9 text-sm font-medium text-gray-700 shadow-sm outline-none transition hover:border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15"
+        className="h-10 cursor-pointer appearance-none rounded-lg border border-gray-200 bg-white pl-3 pr-9 text-sm font-medium text-gray-700 shadow-sm outline-none transition hover:border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/15"
       >
         {opcoes.map(([value, label]) => (
           <option key={value} value={value}>

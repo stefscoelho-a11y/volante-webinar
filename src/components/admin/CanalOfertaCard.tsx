@@ -17,7 +17,7 @@ type CanalOfertaCardProps = {
 };
 
 const botaoClass =
-  "inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-600 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700";
+  "inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-600 transition hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700";
 
 export function CanalOfertaCard({
   canal,
@@ -43,7 +43,7 @@ export function CanalOfertaCard({
             type="button"
             onClick={() => setModo((atual) => (atual === "links" ? "resumo" : "links"))}
             aria-pressed={modo === "links"}
-            className={`${botaoClass} ${modo === "links" ? "border-emerald-300 bg-emerald-50 text-emerald-700" : ""}`}
+            className={`${botaoClass} ${modo === "links" ? "border-orange-300 bg-orange-50 text-orange-700" : ""}`}
           >
             <Link2 className="h-3.5 w-3.5" /> Links
           </button>
@@ -51,7 +51,7 @@ export function CanalOfertaCard({
             type="button"
             onClick={() => setModo((atual) => (atual === "editar" ? "resumo" : "editar"))}
             aria-pressed={modo === "editar"}
-            className={`${botaoClass} ${modo === "editar" ? "border-emerald-300 bg-emerald-50 text-emerald-700" : ""}`}
+            className={`${botaoClass} ${modo === "editar" ? "border-orange-300 bg-orange-50 text-orange-700" : ""}`}
           >
             <Pencil className="h-3.5 w-3.5" /> Editar
           </button>

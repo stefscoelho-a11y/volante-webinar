@@ -43,7 +43,7 @@ export function ImportarWebinarDialog() {
             className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
           >
             <div className="flex items-start gap-4">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-600">
                 <FileJson className="h-5 w-5" />
               </span>
               <div>
@@ -91,7 +91,7 @@ function BotaoImportar() {
     <button
       type="submit"
       disabled={pending}
-      className="h-10 rounded-lg bg-emerald-500 px-4 text-sm font-semibold text-neutral-950 transition hover:bg-emerald-400 disabled:opacity-60"
+      className="h-10 rounded-lg bg-orange-500 px-4 text-sm font-semibold text-neutral-950 transition hover:bg-orange-400 disabled:opacity-60"
     >
       {pending ? "Importando..." : "Importar"}
     </button>

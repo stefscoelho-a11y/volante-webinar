@@ -99,7 +99,7 @@ export function PainelAoVivo({ webinarId, slug, ativo }: PainelAoVivoProps) {
               href={webinarPath(slug)}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 hover:text-emerald-800"
+              className="inline-flex items-center gap-1 text-xs font-medium text-orange-700 hover:text-orange-800"
             >
               Abrir sala
               <ExternalLink className="h-3.5 w-3.5" />
@@ -121,7 +121,7 @@ export function PainelAoVivo({ webinarId, slug, ativo }: PainelAoVivoProps) {
                     </p>
                   </div>
                   <div className="shrink-0 text-right">
-                    <span className="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+                    <span className="inline-flex rounded-full bg-orange-50 px-2 py-0.5 text-[11px] font-medium text-orange-700">
                       {espectador.pagina === "replay" ? "Replay" : "Ao vivo"}
                     </span>
                     <p className="mt-1 text-xs tabular-nums text-gray-500">
@@ -220,8 +220,8 @@ function ItemComentario({
       <p className="mt-1 whitespace-pre-wrap break-words text-sm text-gray-700">{comentario.texto}</p>
 
       {comentario.respostas.map((item) => (
-        <div key={item.id} className="mt-2 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-sm">
-          <span className="font-semibold text-emerald-700">{item.nomeAutor}: </span>
+        <div key={item.id} className="mt-2 rounded-lg border border-orange-100 bg-orange-50 px-3 py-2 text-sm">
+          <span className="font-semibold text-orange-700">{item.nomeAutor}: </span>
           <span className="break-words text-gray-700">{item.texto}</span>
         </div>
       ))}
@@ -233,12 +233,12 @@ function ItemComentario({
           maxLength={MAX_COMENTARIO}
           placeholder={comentario.respostas.length > 0 ? "Responder de novo" : "Responder como suporte"}
           aria-label={`Responder ${comentario.nomeAutor}`}
-          className="h-9 min-w-0 flex-1 rounded-lg border border-gray-300 bg-gray-50 px-3 text-sm outline-none focus:border-emerald-500"
+          className="h-9 min-w-0 flex-1 rounded-lg border border-gray-300 bg-gray-50 px-3 text-sm outline-none focus:border-orange-500"
         />
         <button
           type="submit"
           disabled={enviando || !resposta.trim()}
-          className="h-9 rounded-lg bg-emerald-500 px-3 text-sm font-semibold text-neutral-950 transition hover:bg-emerald-400 disabled:opacity-50"
+          className="h-9 rounded-lg bg-orange-500 px-3 text-sm font-semibold text-neutral-950 transition hover:bg-orange-400 disabled:opacity-50"
         >
           {enviando ? "Enviando..." : "Responder"}
         </button>
@@ -268,7 +268,7 @@ function Contato({ email, whatsapp, convidado }: { email: string | null; whatsap
         href={`https://wa.me/${numero}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-xs font-normal text-emerald-700 hover:underline"
+        className="text-xs font-normal text-orange-700 hover:underline"
       >
         WhatsApp {formatarWhatsapp(numero)}
       </a>
@@ -281,8 +281,8 @@ function Contato({ email, whatsapp, convidado }: { email: string | null; whatsap
 function PontoAoVivo() {
   return (
     <span className="relative flex h-2 w-2 shrink-0">
-      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-      <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-60" />
+      <span className="relative inline-flex h-2 w-2 rounded-full bg-orange-500" />
     </span>
   );
 }

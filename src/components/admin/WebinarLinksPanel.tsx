@@ -132,7 +132,7 @@ export function WebinarLinksPanel({
                 <button
                   type="button"
                   onClick={() => copiar(url, link.key)}
-                  className="shrink-0 rounded-lg bg-emerald-500 px-3 py-2 text-xs font-semibold text-neutral-950 hover:bg-emerald-400"
+                  className="shrink-0 rounded-lg bg-orange-500 px-3 py-2 text-xs font-semibold text-neutral-950 hover:bg-orange-400"
                 >
                   {copiedKey === link.key ? "Copiado!" : "Copiar"}
                 </button>

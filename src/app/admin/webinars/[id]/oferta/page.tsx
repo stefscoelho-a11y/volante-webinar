@@ -15,7 +15,7 @@ type OfertaPageProps = {
 };
 
 const inputClass =
-  "w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm outline-none focus:border-emerald-500";
+  "w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm outline-none focus:border-orange-500";
 
 export default async function OfertaPage({ params, searchParams }: OfertaPageProps) {
   const { id } = await params;
@@ -48,7 +48,7 @@ export default async function OfertaPage({ params, searchParams }: OfertaPagePro
 
       <div className="max-w-2xl space-y-6 pb-16">
         {salvo && (
-          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-4 py-2 text-sm text-emerald-700">
+          <div className="rounded-lg border border-orange-500/30 bg-orange-500/5 px-4 py-2 text-sm text-orange-700">
             Oferta salva.
           </div>
         )}
@@ -180,7 +180,7 @@ export default async function OfertaPage({ params, searchParams }: OfertaPagePro
           <div className="mt-5 flex justify-end">
             <button
               type="submit"
-              className="rounded-lg bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-neutral-950 hover:bg-emerald-400"
+              className="rounded-lg bg-orange-500 px-5 py-2.5 text-sm font-semibold text-neutral-950 hover:bg-orange-400"
             >
               Salvar oferta
             </button>
