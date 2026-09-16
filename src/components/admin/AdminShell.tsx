@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Filter, LayoutDashboard, LogOut, Menu, MonitorPlay, PlayCircle, Radio, X } from "lucide-react";
+import { Filter, LayoutDashboard, LogOut, Menu, MonitorPlay, PlayCircle, Radio, Users, X } from "lucide-react";
 import { logout } from "@/app/admin/login/actions";
 
 const NAV_ITEMS = [
@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: "/admin/webinars", label: "Webinários", icon: MonitorPlay, exact: false },
   { href: "/admin/ao-vivo", label: "Ao vivo", icon: Radio, exact: false },
   { href: "/admin/funil", label: "Funil de Conversão", icon: Filter, exact: false },
+  { href: "/admin/equipe", label: "Equipe", icon: Users, exact: false },
 ];
 
 const classeItemMenu = "flex items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] font-medium transition";

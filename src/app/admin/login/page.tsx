@@ -14,6 +14,17 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
         <input type="hidden" name="next" value={next ?? "/admin/webinars"} />
 
+        <label className="mb-1 block text-sm text-gray-500" htmlFor="email">
+          Email (membro da equipe - deixe em branco pra entrar como admin principal)
+        </label>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          autoFocus
+          className="mb-3 w-full rounded border border-gray-300 bg-gray-100 px-3 py-2 text-sm outline-none focus:border-orange-500"
+        />
+
         <label className="mb-1 block text-sm text-gray-500" htmlFor="senha">
           Senha
         </label>
@@ -21,12 +32,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           id="senha"
           name="senha"
           type="password"
-          autoFocus
           required
           className="mb-3 w-full rounded border border-gray-300 bg-gray-100 px-3 py-2 text-sm outline-none focus:border-orange-500"
         />
 
-        {erro && <p className="mb-3 text-sm text-red-600">Senha incorreta.</p>}
+        {erro && <p className="mb-3 text-sm text-red-600">Email ou senha incorretos.</p>}
 
         <button
           type="submit"
