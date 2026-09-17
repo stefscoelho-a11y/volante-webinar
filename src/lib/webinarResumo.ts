@@ -55,7 +55,9 @@ export function resumoAgenda(
           ? " · repete todo dia"
           : webinar.agendadoRepeticao === "semanal"
             ? " · repete toda semana"
-            : "";
+            : webinar.agendadoRepeticao === "mensal"
+              ? " · repete todo mês"
+              : "";
       return `${formatoAgendado.format(webinar.agendadoDataHoraInicio)}${repeticao}`;
     }
     case "just_in_time":

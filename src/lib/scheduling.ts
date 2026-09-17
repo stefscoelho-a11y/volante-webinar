@@ -278,6 +278,67 @@ export function getAgendadoSessionStart(
   return candidato;
 }
 
+/** Chave "YYYY-MM-DD" do dia de calendario de Brasilia em que `data` cai - usada pra agrupar ocorrencias por dia (ver calendario do dashboard). */
+export function chaveDiaBrasilia(data: Date): string {
+  const c = componentesBrasilia(data);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${c.ano}-${pad(c.mes + 1)}-${pad(c.dia)}`;
+}
+
+/** Dia da semana (0 = domingo) do dia de calendario de Brasilia em que `data` cai. */
+export function diaDaSemanaBrasilia(data: Date): number {
+  return new Date(data.getTime() + OFFSET_BRASILIA_MS).getUTCDay();
+}
+
+/**
+ * Todas as ocorrencias de um agendamento "agendado" que caem entre
+ * `rangeStart` e `rangeEnd` (inclusive) - usado pra montar o calendario do
+ * dashboard. Mesma logica de repeticao/pausa/fim de getAgendadoSessionStart,
+ * so que junta todo mundo no intervalo em vez de so a mais proxima.
+ */
+export function getOcorrenciasAgendadoNoIntervalo(
+  inicio: Date,
+  repeticao: RepeticaoAgendado,
+  fim: Date | null,
+  pausado: boolean,
+  rangeStart: Date,
+  rangeEnd: Date,
+): Date[] {
+  if (pausado) return [];
+  if (inicio.getTime() > rangeEnd.getTime()) return [];
+  if (fim && fim.getTime() < rangeStart.getTime()) return [];
+
+  if (repeticao === "nenhuma") {
+    return inicio.getTime() >= rangeStart.getTime() && inicio.getTime() <= rangeEnd.getTime() ? [inicio] : [];
+  }
+
+  const ocorrencias: Date[] = [];
+  const limite = fim ? Math.min(fim.getTime(), rangeEnd.getTime()) : rangeEnd.getTime();
+
+  if (repeticao === "mensal") {
+    // Sempre "inicio + N meses" (nunca "ocorrencia anterior + 1 mes") - ver o
+    // mesmo cuidado em getAgendadoSessionStart sobre o dia 31 grudar num mes
+    // mais curto. Limite de seguranca de 50 anos.
+    for (let meses = 0; meses < 600; meses++) {
+      const data = somarMesesBrasilia(inicio, meses);
+      if (data.getTime() > limite) break;
+      if (data.getTime() >= rangeStart.getTime()) ocorrencias.push(data);
+    }
+  } else {
+    const passoMs = repeticao === "diaria" ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
+    // Pula direto pra perto do inicio do intervalo em vez de iterar desde o
+    // comeco da serie (que pode ser anos atras).
+    const passosAteRange = Math.max(0, Math.floor((rangeStart.getTime() - inicio.getTime()) / passoMs));
+    for (let passo = passosAteRange; ; passo++) {
+      const data = new Date(inicio.getTime() + passo * passoMs);
+      if (data.getTime() > limite) break;
+      if (data.getTime() >= rangeStart.getTime()) ocorrencias.push(data);
+    }
+  }
+
+  return ocorrencias;
+}
+
 export function formatCountdown(totalSeconds: number): string {
   const seconds = Math.max(0, Math.floor(totalSeconds));
   const hours = Math.floor(seconds / 3600);
