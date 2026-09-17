@@ -98,6 +98,9 @@ function parseWebinarFormData(formData: FormData) {
     tipoAgendamento === "agendado" && agendadoInicioRaw
       ? (parseDatetimeLocalBrasilia(agendadoInicioRaw) ?? undefined)
       : undefined;
+  console.log("DEBUG agendadoInicioRaw:", JSON.stringify(agendadoInicioRaw));
+  console.log("DEBUG agendadoDataHoraInicio parsed:", agendadoDataHoraInicio?.toISOString());
+  console.log("DEBUG process.env.TZ:", process.env.TZ, "| new Date().getTimezoneOffset():", new Date().getTimezoneOffset());
 
   // Opcional mesmo repetindo: em branco, a serie roda pra sempre (ate ser
   // pausada em agendadoPausado).
