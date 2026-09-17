@@ -3,8 +3,12 @@ import { prisma } from "@/lib/prisma";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { StatCard } from "@/components/admin/StatCard";
 import { RetentionChartExample } from "@/components/admin/RetentionChartExample";
+import { RetentionChartReal } from "@/components/admin/RetentionChartReal";
+import { SeletorWebinarRetencao } from "@/components/admin/SeletorWebinarRetencao";
 import { WebinarCalendarioMes, type CelulaCalendario, type EventoCalendario } from "@/components/admin/WebinarCalendarioMes";
 import { resumoAgenda } from "@/lib/webinarResumo";
+import { extractYouTubeId } from "@/lib/youtube";
+import { buscarRetencaoVideo } from "@/lib/youtubeAnalytics";
 import {
   chaveDiaBrasilia,
   diaDaSemanaBrasilia,
@@ -18,7 +22,7 @@ import {
 export const dynamic = "force-dynamic";
 
 type DashboardPageProps = {
-  searchParams: Promise<{ from?: string; to?: string; range?: string; mes?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; range?: string; mes?: string; video?: string }>;
 };
 
 function resolveRange(params: { from?: string; to?: string; range?: string }) {
@@ -168,6 +172,17 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   }).format(primeiroDiaMes);
   const tituloMes = tituloMesBruto.charAt(0).toUpperCase() + tituloMesBruto.slice(1);
 
+  // --- Retencao real (YouTube Analytics) do webinario escolhido no seletor ---
+  const webinariosComVideo = await prisma.webinar.findMany({
+    where: { ativo: true, videoUrl: { not: null } },
+    select: { id: true, titulo: true, videoUrl: true },
+    orderBy: { criadoEm: "desc" },
+  });
+  const webinarRetencao =
+    webinariosComVideo.find((webinar) => webinar.id === params.video) ?? webinariosComVideo[0] ?? null;
+  const videoIdRetencao = webinarRetencao?.videoUrl ? extractYouTubeId(webinarRetencao.videoUrl) : null;
+  const resultadoRetencao = videoIdRetencao ? await buscarRetencaoVideo(videoIdRetencao) : null;
+
   return (
     <AdminShell>
       <div className="mx-auto max-w-6xl p-4 sm:p-6">
@@ -217,7 +232,46 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           </div>
         </div>
 
-        <RetentionChartExample />
+        {webinarRetencao && resultadoRetencao?.status === "ok" ? (
+          <div className="rounded-xl border border-gray-200 bg-white p-5">
+            <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold text-gray-800">Retenção média do webinário</h2>
+              <div className="flex items-center gap-2">
+                <span className="rounded-full bg-orange-500/10 px-2 py-0.5 text-[11px] font-medium text-orange-700">
+                  Dados reais do YouTube
+                </span>
+                {webinariosComVideo.length > 1 && (
+                  <SeletorWebinarRetencao webinarios={webinariosComVideo} selecionadoId={webinarRetencao.id} />
+                )}
+              </div>
+            </div>
+            <p className="mb-4 truncate text-xs text-gray-500">{webinarRetencao.titulo}</p>
+            <RetentionChartReal pontos={resultadoRetencao.pontos} />
+            <div className="mt-2 flex justify-between text-[11px] text-gray-400">
+              <span>Início</span>
+              <span>Fim</span>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <RetentionChartExample />
+            {webinariosComVideo.length > 0 && (
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 px-1">
+                <p className="text-xs text-gray-500">
+                  {resultadoRetencao?.status === "erro"
+                    ? resultadoRetencao.mensagem
+                    : "Conecte um canal do YouTube pra ver a retenção real aqui."}{" "}
+                  <Link href="/admin/youtube" className="font-medium text-orange-600 hover:text-orange-700">
+                    {resultadoRetencao?.status === "erro" ? "Ver conexão" : "Conectar YouTube"}
+                  </Link>
+                </p>
+                {webinariosComVideo.length > 1 && webinarRetencao && (
+                  <SeletorWebinarRetencao webinarios={webinariosComVideo} selecionadoId={webinarRetencao.id} />
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="mt-6 rounded-xl border border-gray-200 bg-white p-4">
           <p className="text-sm text-gray-500">

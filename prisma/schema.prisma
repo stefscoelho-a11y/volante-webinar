@@ -255,3 +255,18 @@ model Membro {
 
   @@map("membros")
 }
+
+// Conexao OAuth com um canal do YouTube (retencao real dos videos - ver
+// src/lib/youtubeAnalytics.ts). So uma linha (id fixo "singleton"): a
+// autorizacao e por canal, nao por webinar - conecta uma vez e vale pra
+// qualquer webinar cujo video seja desse canal.
+model IntegracaoYoutube {
+  id           String   @id @default("singleton")
+  refreshToken String   @map("refresh_token")
+  canalId      String?  @map("canal_id")
+  canalNome    String?  @map("canal_nome")
+  conectadoEm  DateTime @default(now()) @map("conectado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  @@map("integracao_youtube")
+}
