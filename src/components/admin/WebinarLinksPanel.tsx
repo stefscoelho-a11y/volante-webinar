@@ -71,6 +71,13 @@ export function WebinarLinksPanel({
       aviso: null,
     },
     {
+      key: "teste_oferta",
+      label: "Sala teste (direto na oferta)",
+      path: webinarPath(slug, "teste", { k: tokenSalaTeste, ir: "oferta", ...canalQuery }),
+      desc: "Mesma sala teste, mas já abre no momento do CTA - pra conferir rápido se a oferta está certa, sem precisar avançar o vídeo manualmente.",
+      aviso: null,
+    },
+    {
       key: "replay",
       label: "Sala com replay",
       path: webinarPath(slug, "replay", canalQuery),

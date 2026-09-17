@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { extractYouTubeId } from "@/lib/youtube";
 import {
+  duracaoEfetivaSegundos,
   getAgendadoSessionStart,
   getElapsedSeconds,
   getFixoSessionStart,
@@ -35,6 +36,8 @@ function resolveSessionStart(
     agendadoDataHoraInicio: Date | null;
     agendadoDataHoraFim: Date | null;
     agendadoRepeticao: string | null;
+    agendadoPausado: boolean;
+    agendadoDuracaoMaximaSegundos: number | null;
   },
   horarioEscolhido?: string,
 ): Date | null {
@@ -54,7 +57,8 @@ function resolveSessionStart(
         webinar.agendadoDataHoraInicio,
         (webinar.agendadoRepeticao as RepeticaoAgendado) ?? "nenhuma",
         webinar.agendadoDataHoraFim,
-        webinar.videoDurationSeconds,
+        webinar.agendadoPausado,
+        duracaoEfetivaSegundos(webinar.videoDurationSeconds, webinar.agendadoDuracaoMaximaSegundos),
       );
     default:
       return null;
@@ -103,8 +107,15 @@ export default async function SalaPage({ params, searchParams }: PageProps) {
     );
   }
 
+  // "agendado" pode ter um horario de fim proprio, mais curto que o video (ver
+  // Webinar.agendadoDuracaoMaximaSegundos) - os outros tipos usam o video inteiro.
+  const videoDurationEfetiva =
+    webinar.tipoAgendamento === "agendado"
+      ? duracaoEfetivaSegundos(webinar.videoDurationSeconds, webinar.agendadoDuracaoMaximaSegundos)
+      : webinar.videoDurationSeconds;
+
   const elapsedSeconds = getElapsedSeconds(sessionStart);
-  const jaEncerrado = isSessaoEncerrada(elapsedSeconds, webinar.videoDurationSeconds);
+  const jaEncerrado = isSessaoEncerrada(elapsedSeconds, videoDurationEfetiva);
 
   const videoId = webinar.videoUrl ? extractYouTubeId(webinar.videoUrl) : null;
   if (!videoId) {
@@ -119,7 +130,7 @@ export default async function SalaPage({ params, searchParams }: PageProps) {
       webinarId={webinar.id}
       titulo={webinar.titulo}
       videoId={videoId}
-      videoDurationSeconds={webinar.videoDurationSeconds}
+      videoDurationSeconds={videoDurationEfetiva}
       sessionStartIso={sessionStart.toISOString()}
       jaEncerradoNoCarregamento={jaEncerrado}
       sincronizarVideoComHorario={webinar.sincronizarVideoComHorario}

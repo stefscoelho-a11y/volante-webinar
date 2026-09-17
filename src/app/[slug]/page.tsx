@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getAgendadoSessionStart, type RepeticaoAgendado } from "@/lib/scheduling";
+import { duracaoEfetivaSegundos, getAgendadoSessionStart, type RepeticaoAgendado } from "@/lib/scheduling";
 import { lerUtms, webinarPath } from "@/lib/linksAcesso";
 import { campoOcultoCanal, lerCanalDaQuery, queryCanal } from "@/lib/canaisOferta";
 import { getLeadAtual, leadCadastrado, redirecionarSeMagicLink } from "@/lib/leads";
@@ -61,7 +61,8 @@ export default async function SalaPrincipalPage({ params, searchParams }: SalaPr
       webinar.agendadoDataHoraInicio,
       (webinar.agendadoRepeticao as RepeticaoAgendado) ?? "nenhuma",
       webinar.agendadoDataHoraFim,
-      webinar.videoDurationSeconds,
+      webinar.agendadoPausado,
+      duracaoEfetivaSegundos(webinar.videoDurationSeconds, webinar.agendadoDuracaoMaximaSegundos),
     );
     if (!sessionStart) {
       return <AvisoPagina titulo={webinar.titulo} mensagem="Este webinário não está mais disponível." />;

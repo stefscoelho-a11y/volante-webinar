@@ -31,6 +31,8 @@ type AdminPreviewProps = {
   corTexto: string;
   fonteSala: string;
   chatMessages: ChatMessageData[];
+  // Abre ja no ponto do CTA, sem precisar clicar em "No CTA" depois de carregar.
+  abrirNaOferta?: boolean;
 };
 
 function computeSessionStartIso(elapsedSeconds: number): string {
@@ -64,9 +66,11 @@ export function AdminPreview({
   corTexto,
   fonteSala,
   chatMessages,
+  abrirNaOferta = false,
 }: AdminPreviewProps) {
-  const [manualElapsed, setManualElapsed] = useState(0);
-  const [sessionStartIso, setSessionStartIso] = useState(() => computeSessionStartIso(0));
+  const elapsedInicial = abrirNaOferta ? Math.min(pitchTimestampSeconds, videoDurationSeconds - 1) : 0;
+  const [manualElapsed, setManualElapsed] = useState(elapsedInicial);
+  const [sessionStartIso, setSessionStartIso] = useState(() => computeSessionStartIso(elapsedInicial));
   // Muda a cada "Ir" clicado, forcando o SalaRoom a remontar do zero (via
   // key) mesmo se o valor em segundos for o mesmo de antes.
   const [nonce, setNonce] = useState(0);

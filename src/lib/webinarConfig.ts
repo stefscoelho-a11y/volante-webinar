@@ -64,6 +64,8 @@ const CAMPOS: Record<CampoConfig, TipoCampo> = {
   agendadoDataHoraInicio: "dataOpcional",
   agendadoDataHoraFim: "dataOpcional",
   agendadoRepeticao: "textoOpcional",
+  agendadoPausado: "booleano",
+  agendadoDuracaoMaximaSegundos: "inteiroOpcional",
   exigirCadastro: "booleano",
   justInTimeAtivo: "booleano",
   replayAtivo: "booleano",
@@ -78,6 +80,7 @@ const PADROES: Partial<Record<CampoConfig, unknown>> = {
   exigirCadastro: false,
   justInTimeAtivo: false,
   replayAtivo: false,
+  agendadoPausado: false,
   tipoAgendamento: "recorrente",
   ...VISUAL_DEFAULTS,
 };

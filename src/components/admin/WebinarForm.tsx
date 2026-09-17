@@ -49,6 +49,9 @@ type WebinarFormValues = {
   agendadoDataHoraInicio: string;
   agendadoDataHoraFim: string;
   agendadoRepeticao: RepeticaoAgendado;
+  agendadoPausado: boolean;
+  // "HH:mm", opcional - fecha a sala nesse horario mesmo com o video mais longo
+  agendadoHorarioFim: string;
   temaSala: TemaSala;
   corPrimaria: string;
   corFundo: string;
@@ -95,6 +98,8 @@ const DEFAULTS: WebinarFormValues = {
   agendadoDataHoraInicio: "",
   agendadoDataHoraFim: "",
   agendadoRepeticao: "nenhuma",
+  agendadoPausado: false,
+  agendadoHorarioFim: "",
   ...VISUAL_DEFAULTS,
 };
 
@@ -297,21 +302,48 @@ export function WebinarForm({ action, initialValues, submitLabel, webinarId, ini
                   >
                     <option value="nenhuma">Não repetir (sessão única)</option>
                     <option value="diaria">Diariamente</option>
-                    <option value="semanal">Semanalmente</option>
+                    <option value="semanal">Semanalmente (mesmo dia da semana do início)</option>
+                    <option value="mensal">Mensalmente (mesmo dia do mês do início)</option>
                   </select>
                 </Field>
 
                 {repeticao !== "nenhuma" && (
-                  <Field label="Data e hora de finalização (a repetição para depois disso)">
+                  <Field label="Data e hora de finalização (opcional)">
                     <input
                       type="datetime-local"
                       name="agendadoDataHoraFim"
                       defaultValue={values.agendadoDataHoraFim}
-                      required
                       className={inputClass}
                     />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Deixe em branco pra repetir indefinidamente - você controla com o campo &quot;Pausar&quot;
+                      abaixo, sem precisar calcular uma data de fim.
+                    </p>
                   </Field>
                 )}
+
+                <Field label="Horário de término (opcional, hh:mm)">
+                  <input
+                    type="time"
+                    name="agendadoHorarioFim"
+                    defaultValue={values.agendadoHorarioFim}
+                    className={inputClass}
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Fecha a sala nesse horário mesmo se o vídeo ainda não tiver acabado - útil pra uma aula das 19h
+                    às 21h com um vídeo mais longo. Deixe em branco pra usar a duração real do vídeo.
+                  </p>
+                </Field>
+
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    name="agendadoPausado"
+                    defaultChecked={values.agendadoPausado}
+                    className="h-4 w-4"
+                  />
+                  Pausar este agendamento (a sala fica indisponível até você desmarcar)
+                </label>
               </>
             )}
 

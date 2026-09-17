@@ -4,7 +4,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
-import { REPETICOES_AGENDADO, TIPOS_AGENDAMENTO, type RepeticaoAgendado, type TipoAgendamento } from "@/lib/scheduling";
+import {
+  parseDatetimeLocalBrasilia,
+  REPETICOES_AGENDADO,
+  TIPOS_AGENDAMENTO,
+  type RepeticaoAgendado,
+  type TipoAgendamento,
+} from "@/lib/scheduling";
 import { parseFonteSala, parseHexColor, parseTemaSala, VISUAL_DEFAULTS } from "@/lib/webinarVisual";
 import { SLUGS_RESERVADOS } from "@/lib/linksAcesso";
 import { parseTempoHMS } from "@/lib/tempo";
@@ -21,6 +27,24 @@ function slugify(value: string): string {
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
+}
+
+/**
+ * Minutos entre o horario de "agendadoDataHoraInicio" (extraido da string
+ * crua "YYYY-MM-DDTHH:mm" do <input type="datetime-local">) e o horario de
+ * fim "HH:mm" escolhido - usado pra fechar a sala nesse horario do dia mesmo
+ * com um video mais longo. Null se nao der pra calcular (fim antes do inicio,
+ * por exemplo - nao suporta virar a meia-noite).
+ */
+function calcularDuracaoMaximaSegundos(inicioRaw: string, horarioFim: string): number | null {
+  const matchInicio = /T(\d{2}):(\d{2})$/.exec(inicioRaw);
+  const matchFim = /^(\d{1,2}):(\d{2})$/.exec(horarioFim.trim());
+  if (!matchInicio || !matchFim) return null;
+
+  const minutosInicio = Number(matchInicio[1]) * 60 + Number(matchInicio[2]);
+  const minutosFim = Number(matchFim[1]) * 60 + Number(matchFim[2]);
+  const diferenca = minutosFim - minutosInicio;
+  return diferenca > 0 ? diferenca * 60 : null;
 }
 
 // Campos da etapa "Oferta" (ofertaNome, ctaTexto, precos...) nao passam por
@@ -65,15 +89,34 @@ function parseWebinarFormData(formData: FormData) {
     ? (agendadoRepeticaoRaw as RepeticaoAgendado)
     : "nenhuma";
 
+  // parseDatetimeLocalBrasilia (nao new Date(...) direto): o <input
+  // datetime-local> nao carrega fuso, e o resto do app trata esses campos
+  // como horario de Brasilia (replay, fixo...) - sem isso, o horario digitado
+  // valeria como UTC direto no servidor da Vercel (3h adiantado).
   const agendadoInicioRaw = String(formData.get("agendadoDataHoraInicio") ?? "").trim();
   const agendadoDataHoraInicio =
-    tipoAgendamento === "agendado" && agendadoInicioRaw ? new Date(agendadoInicioRaw) : undefined;
+    tipoAgendamento === "agendado" && agendadoInicioRaw
+      ? (parseDatetimeLocalBrasilia(agendadoInicioRaw) ?? undefined)
+      : undefined;
 
+  // Opcional mesmo repetindo: em branco, a serie roda pra sempre (ate ser
+  // pausada em agendadoPausado).
   const agendadoFimRaw = String(formData.get("agendadoDataHoraFim") ?? "").trim();
   const agendadoDataHoraFim =
     tipoAgendamento === "agendado" && agendadoRepeticao !== "nenhuma" && agendadoFimRaw
-      ? new Date(agendadoFimRaw)
+      ? (parseDatetimeLocalBrasilia(agendadoFimRaw) ?? undefined)
       : undefined;
+
+  const agendadoPausado = tipoAgendamento === "agendado" && formData.get("agendadoPausado") === "on";
+
+  const agendadoHorarioFimRaw = String(formData.get("agendadoHorarioFim") ?? "").trim();
+  const agendadoDuracaoMaximaSegundos =
+    tipoAgendamento === "agendado" && agendadoHorarioFimRaw
+      ? calcularDuracaoMaximaSegundos(agendadoInicioRaw, agendadoHorarioFimRaw)
+      : undefined;
+  if (tipoAgendamento === "agendado" && agendadoHorarioFimRaw && agendadoDuracaoMaximaSegundos == null) {
+    throw new Error("O horário de fim precisa ser depois do horário de início configurado.");
+  }
 
   const metaPixelId = String(formData.get("metaPixelId") ?? "").trim() || undefined;
 
@@ -100,9 +143,6 @@ function parseWebinarFormData(formData: FormData) {
   if (tipoAgendamento === "agendado" && !agendadoDataHoraInicio) {
     throw new Error("Defina a data e hora de inicio do agendamento.");
   }
-  if (tipoAgendamento === "agendado" && agendadoRepeticao !== "nenhuma" && !agendadoDataHoraFim) {
-    throw new Error("Defina a data e hora de finalizacao da repeticao.");
-  }
 
   return {
     titulo,
@@ -118,6 +158,8 @@ function parseWebinarFormData(formData: FormData) {
     agendadoDataHoraInicio,
     agendadoDataHoraFim,
     agendadoRepeticao,
+    agendadoPausado,
+    agendadoDuracaoMaximaSegundos,
     metaPixelId,
     audienciaFakeMin,
     audienciaFakeMax,
@@ -155,6 +197,8 @@ export async function createWebinar(formData: FormData) {
       agendadoDataHoraInicio: data.agendadoDataHoraInicio,
       agendadoDataHoraFim: data.agendadoDataHoraFim,
       agendadoRepeticao: data.tipoAgendamento === "agendado" ? data.agendadoRepeticao : undefined,
+      agendadoPausado: data.agendadoPausado,
+      agendadoDuracaoMaximaSegundos: data.agendadoDuracaoMaximaSegundos,
       ofertaNome: oferta.ofertaNome,
       ofertaTitulo: oferta.ofertaTitulo,
       ofertaImagemUrl: oferta.ofertaImagemUrl,
@@ -201,6 +245,8 @@ export async function updateWebinar(id: string, formData: FormData) {
       agendadoDataHoraInicio: data.agendadoDataHoraInicio ?? null,
       agendadoDataHoraFim: data.agendadoDataHoraFim ?? null,
       agendadoRepeticao: data.tipoAgendamento === "agendado" ? data.agendadoRepeticao : null,
+      agendadoPausado: data.agendadoPausado,
+      agendadoDuracaoMaximaSegundos: data.agendadoDuracaoMaximaSegundos ?? null,
       metaPixelId: data.metaPixelId ?? null,
       audienciaFakeMin: data.audienciaFakeMin ?? null,
       audienciaFakeMax: data.audienciaFakeMax ?? null,

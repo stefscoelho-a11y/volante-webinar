@@ -12,7 +12,9 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 type SalaTestePageProps = {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ k?: string; c?: string }>;
+  // ir=oferta: abre a sala teste ja no ponto do CTA, sem precisar clicar em
+  // "No CTA" manualmente - usado pelo link "Sala teste (direto na oferta)".
+  searchParams: Promise<{ k?: string; c?: string; ir?: string }>;
 };
 
 /**
@@ -22,7 +24,7 @@ type SalaTestePageProps = {
  */
 export default async function SalaTestePage({ params, searchParams }: SalaTestePageProps) {
   const { slug } = await params;
-  const { k, c: canalDaUrl } = await searchParams;
+  const { k, c: canalDaUrl, ir } = await searchParams;
 
   const webinar = await prisma.webinar.findUnique({
     where: { slug },
@@ -66,6 +68,7 @@ export default async function SalaTestePage({ params, searchParams }: SalaTesteP
         precoParcelado={oferta.precoParcelado}
         ctaCountdownMinutos={oferta.ctaCountdownMinutos}
         metaPixelId={null}
+        abrirNaOferta={ir === "oferta"}
         audienciaFakeMin={webinar.audienciaFakeMin}
         audienciaFakeMax={webinar.audienciaFakeMax}
         temaSala={webinar.temaSala}

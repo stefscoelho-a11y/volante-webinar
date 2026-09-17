@@ -14,24 +14,8 @@
 export const TIPOS_AGENDAMENTO = ["fixo", "recorrente", "just_in_time", "agendado"] as const;
 export type TipoAgendamento = (typeof TIPOS_AGENDAMENTO)[number];
 
-export const REPETICOES_AGENDADO = ["nenhuma", "diaria", "semanal"] as const;
+export const REPETICOES_AGENDADO = ["nenhuma", "diaria", "semanal", "mensal"] as const;
 export type RepeticaoAgendado = (typeof REPETICOES_AGENDADO)[number];
-
-/**
- * Formata um Date pro formato que <input type="datetime-local"> espera
- * ("YYYY-MM-DDTHH:mm", em horario local - sem timezone). Usado so pra
- * preencher o formulario do admin com o valor ja salvo.
- */
-export function toDatetimeLocalValue(date: Date | null): string {
-  if (!date) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const ano = date.getFullYear();
-  const mes = pad(date.getMonth() + 1);
-  const dia = pad(date.getDate());
-  const horas = pad(date.getHours());
-  const minutos = pad(date.getMinutes());
-  return `${ano}-${mes}-${dia}T${horas}:${minutos}`;
-}
 
 /**
  * tipo "recorrente": a sessao mais proxima e calculada alinhando o relogio a
@@ -136,6 +120,20 @@ export function toDatetimeLocalBrasilia(date: Date | null): string {
   return new Date(date.getTime() + OFFSET_BRASILIA_MS).toISOString().slice(0, 16);
 }
 
+/**
+ * Horario "HH:mm" (Brasilia) de "inicio + duracaoMaximaSegundos" - inverso do
+ * calculo feito ao salvar (ver calcularDuracaoMaximaSegundos em
+ * src/app/admin/webinars/actions.ts). Usado so pra preencher o formulario de
+ * edicao com o horario de fim ja salvo.
+ */
+export function horarioFimAgendado(inicio: Date, duracaoMaximaSegundos: number | null): string {
+  if (duracaoMaximaSegundos == null) return "";
+  const fim = new Date(inicio.getTime() + duracaoMaximaSegundos * 1000);
+  const brasilia = new Date(fim.getTime() + OFFSET_BRASILIA_MS);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(brasilia.getUTCHours())}:${pad(brasilia.getUTCMinutes())}`;
+}
+
 export function formatarDataHoraBrasilia(date: Date): string {
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: FUSO_BRASILIA }).format(
     date,
@@ -174,38 +172,103 @@ export function getSessaoRecorrenteAlcancavel(intervaloMinutos: number, videoDur
   return sessionStart;
 }
 
+/** Componentes do calendario de Brasilia (ano/mes 0-indexado/dia/hora/minuto) de um instante UTC. */
+function componentesBrasilia(data: Date) {
+  const brasilia = new Date(data.getTime() + OFFSET_BRASILIA_MS);
+  return {
+    ano: brasilia.getUTCFullYear(),
+    mes: brasilia.getUTCMonth(),
+    dia: brasilia.getUTCDate(),
+    horas: brasilia.getUTCHours(),
+    minutos: brasilia.getUTCMinutes(),
+  };
+}
+
+/** Instante UTC correspondente a um horario de Brasilia (mes 0-indexado). */
+function instanteBrasilia(ano: number, mes: number, dia: number, horas: number, minutos: number): Date {
+  return new Date(Date.UTC(ano, mes, dia, horas, minutos) - OFFSET_BRASILIA_MS);
+}
+
+/**
+ * Soma `meses` meses de calendario (horario de Brasilia) a partir de `data`,
+ * preservando dia e horario. Se o dia nao existir no mes de destino (ex: 31
+ * de fevereiro), cai no ultimo dia daquele mes.
+ */
+function somarMesesBrasilia(data: Date, meses: number): Date {
+  const c = componentesBrasilia(data);
+  const alvoMes = c.mes + meses;
+  const anoAlvo = c.ano + Math.floor(alvoMes / 12);
+  const mesAlvo = ((alvoMes % 12) + 12) % 12;
+  const ultimoDiaDoMes = new Date(Date.UTC(anoAlvo, mesAlvo + 1, 0)).getUTCDate();
+  const diaAlvo = Math.min(c.dia, ultimoDiaDoMes);
+  return instanteBrasilia(anoAlvo, mesAlvo, diaAlvo, c.horas, c.minutos);
+}
+
+/**
+ * Se `duracaoMaximaSegundos` estiver configurada (fecha a sala nesse horario
+ * do dia mesmo com o video mais longo - ver Webinar.agendadoDuracaoMaximaSegundos),
+ * ela vence sobre a duracao real do video.
+ */
+export function duracaoEfetivaSegundos(videoDurationSeconds: number, duracaoMaximaSegundos: number | null): number {
+  return duracaoMaximaSegundos != null ? Math.min(videoDurationSeconds, duracaoMaximaSegundos) : videoDurationSeconds;
+}
+
 /**
  * tipo "agendado": um inicio especifico (data + hora) que pode ou nao se
- * repetir (diariamente ou semanalmente) ate uma data de fim. Retorna a
- * sessao alcancavel mais proxima, igual o "recorrente": se a ocorrencia mais
- * recente ja encerrou, pula pra proxima (em vez de travar num "encerrado"
- * sem info nenhuma). Retorna null quando a serie ja passou de vez do fim
+ * repetir (diaria, semanal ou mensal) ate uma data de fim - ou pra sempre, se
+ * `fim` for nulo, ate ser pausado (`pausado`). Retorna a sessao alcancavel
+ * mais proxima, igual o "recorrente": se a ocorrencia mais recente ja
+ * encerrou, pula pra proxima (em vez de travar num "encerrado" sem info
+ * nenhuma). Retorna null quando pausado ou quando a serie ja passou do fim
  * configurado (nao ha mais nenhuma ocorrencia futura).
  */
 export function getAgendadoSessionStart(
   inicio: Date,
   repeticao: RepeticaoAgendado,
   fim: Date | null,
+  pausado: boolean,
   videoDurationSeconds: number,
   now: Date = new Date(),
 ): Date | null {
-  if (repeticao === "nenhuma") {
-    return inicio;
-  }
-
-  const passoMs = repeticao === "diaria" ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
+  if (pausado) return null;
+  if (repeticao === "nenhuma") return inicio;
 
   // Ainda nao chegou a primeira ocorrencia: essa e a "mais proxima".
   if (now.getTime() < inicio.getTime()) {
     return inicio;
   }
 
-  const passosDecorridos = Math.floor((now.getTime() - inicio.getTime()) / passoMs);
-  let candidato = new Date(inicio.getTime() + passosDecorridos * passoMs);
+  let candidato: Date;
 
-  const elapsed = getElapsedSeconds(candidato, now);
-  if (isSessaoEncerrada(elapsed, videoDurationSeconds)) {
-    candidato = new Date(candidato.getTime() + passoMs);
+  if (repeticao === "mensal") {
+    // Cada ocorrencia e sempre "inicio + N meses" (nunca "ocorrencia anterior
+    // + 1 mes"): senao, um inicio no dia 31 que cai num fevereiro (dia 28)
+    // "gruda" nesse dia menor pro resto da serie, em vez de voltar pro 31
+    // assim que um mes com 31 dias aparecer de novo. Mes nao tem duracao fixa
+    // em ms, entao avanca mes a mes (horario de Brasilia) ate achar a
+    // ocorrencia mais recente que ja comecou. Limite de seguranca de 50 anos:
+    // nunca deveria bater nisso na pratica.
+    let meses = 0;
+    candidato = inicio;
+    for (let i = 0; i < 600; i++) {
+      const proximo = somarMesesBrasilia(inicio, meses + 1);
+      if (proximo.getTime() > now.getTime()) break;
+      meses += 1;
+      candidato = proximo;
+    }
+    const elapsed = getElapsedSeconds(candidato, now);
+    if (isSessaoEncerrada(elapsed, videoDurationSeconds)) {
+      candidato = somarMesesBrasilia(inicio, meses + 1);
+    }
+  } else {
+    const passoMs = repeticao === "diaria" ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
+    const passosDecorridos = Math.floor((now.getTime() - inicio.getTime()) / passoMs);
+    candidato = new Date(inicio.getTime() + passosDecorridos * passoMs);
+
+    const elapsed = getElapsedSeconds(candidato, now);
+    if (isSessaoEncerrada(elapsed, videoDurationSeconds)) {
+      candidato = new Date(candidato.getTime() + passoMs);
+    }
   }
 
   if (fim && candidato.getTime() > fim.getTime()) {

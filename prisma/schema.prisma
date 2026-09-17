@@ -14,69 +14,78 @@ datasource db {
 // (Enums nao sao suportados pelo conector SQLite, por isso String.
 // Validar o valor na camada de aplicacao com um union type TS.)
 model Webinar {
-  id                          String    @id @default(cuid())
-  titulo                      String
-  slug                        String    @unique
-  videoUrl                    String?   @map("video_url")
-  videoFilePath               String?   @map("video_file_path")
-  videoDurationSeconds        Int       @map("video_duration_seconds")
-  pitchTimestampSeconds       Int       @map("pitch_timestamp_seconds")
-  ctaTexto                    String    @map("cta_texto")
-  ctaLink                     String    @map("cta_link")
+  id                            String    @id @default(cuid())
+  titulo                        String
+  slug                          String    @unique
+  videoUrl                      String?   @map("video_url")
+  videoFilePath                 String?   @map("video_file_path")
+  videoDurationSeconds          Int       @map("video_duration_seconds")
+  pitchTimestampSeconds         Int       @map("pitch_timestamp_seconds")
+  ctaTexto                      String    @map("cta_texto")
+  ctaLink                       String    @map("cta_link")
   // Configuracao da oferta que aparece junto com o CTA - tudo opcional
-  ofertaNome                  String?   @map("oferta_nome")
-  ofertaTitulo                String?   @map("oferta_titulo")
-  ofertaImagemUrl             String?   @map("oferta_imagem_url")
-  ofertaDescricao             String?   @map("oferta_descricao")
-  precoOriginal               Float?    @map("preco_original")
-  precoOferta                 Float?    @map("preco_oferta")
+  ofertaNome                    String?   @map("oferta_nome")
+  ofertaTitulo                  String?   @map("oferta_titulo")
+  ofertaImagemUrl               String?   @map("oferta_imagem_url")
+  ofertaDescricao               String?   @map("oferta_descricao")
+  precoOriginal                 Float?    @map("preco_original")
+  precoOferta                   Float?    @map("preco_oferta")
   // Texto livre do parcelamento (ex: "10x de R$ 19,90"), mostrado junto do preco
-  precoParcelado              String?   @map("preco_parcelado")
+  precoParcelado                String?   @map("preco_parcelado")
   // Minutos de contagem regressiva de urgencia a partir do momento que o CTA aparece
-  ctaCountdownMinutos         Int?      @map("cta_countdown_minutos")
+  ctaCountdownMinutos           Int?      @map("cta_countdown_minutos")
   // Segundo do video em que o CTA some (opcional - se nulo, fica ate o fim)
-  ctaDesaparecerSegundos      Int?      @map("cta_desaparecer_segundos")
+  ctaDesaparecerSegundos        Int?      @map("cta_desaparecer_segundos")
   // Meta/Facebook Pixel ID, injetado na pagina da sala quando configurado
-  metaPixelId                 String?   @map("meta_pixel_id")
+  metaPixelId                   String?   @map("meta_pixel_id")
   // Se falso, o video sempre comeca do zero pra cada espectador (nao pula
   // pro ponto do relogio real); o agendamento (aguardando/encerrado) continua
   // valendo do mesmo jeito independente disso.
-  sincronizarVideoComHorario  Boolean   @default(true) @map("sincronizar_video_com_horario")
+  sincronizarVideoComHorario    Boolean   @default(true) @map("sincronizar_video_com_horario")
   // Faixa da audiencia fake exibida na sala - se nulos, usa uma faixa padrao
-  audienciaFakeMin            Int?      @map("audiencia_fake_min")
-  audienciaFakeMax            Int?      @map("audiencia_fake_max")
+  audienciaFakeMin              Int?      @map("audiencia_fake_min")
+  audienciaFakeMax              Int?      @map("audiencia_fake_max")
   // Aparencia da sala publica. Valores validados na camada de aplicacao.
-  temaSala                    String    @default("hotwebinar") @map("tema_sala")
-  corPrimaria                 String    @default("#e11d48") @map("cor_primaria")
-  corFundo                    String    @default("#fafaf8") @map("cor_fundo")
-  corTexto                    String    @default("#18181b") @map("cor_texto")
-  fonteSala                   String    @default("Inter") @map("fonte_sala")
-  tipoAgendamento             String    @default("fixo") @map("tipo_agendamento")
+  temaSala                      String    @default("hotwebinar") @map("tema_sala")
+  corPrimaria                   String    @default("#e11d48") @map("cor_primaria")
+  corFundo                      String    @default("#fafaf8") @map("cor_fundo")
+  corTexto                      String    @default("#18181b") @map("cor_texto")
+  fonteSala                     String    @default("Inter") @map("fonte_sala")
+  tipoAgendamento               String    @default("fixo") @map("tipo_agendamento")
   // JSON array de horarios "HH:mm", usado quando tipoAgendamento = "fixo"
-  horariosFixos               Json?     @map("horarios_fixos")
-  intervaloRecorrenciaMinutos Int?      @map("intervalo_recorrencia_minutos")
-  delayJustInTimeMinutos      Int?      @map("delay_just_in_time_minutos")
+  horariosFixos                 Json?     @map("horarios_fixos")
+  intervaloRecorrenciaMinutos   Int?      @map("intervalo_recorrencia_minutos")
+  delayJustInTimeMinutos        Int?      @map("delay_just_in_time_minutos")
   // Usado quando tipoAgendamento = "agendado"
-  agendadoDataHoraInicio      DateTime? @map("agendado_data_hora_inicio")
-  agendadoDataHoraFim         DateTime? @map("agendado_data_hora_fim")
-  // "nenhuma" | "diaria" | "semanal"
-  agendadoRepeticao           String?   @map("agendado_repeticao")
+  agendadoDataHoraInicio        DateTime? @map("agendado_data_hora_inicio")
+  // Opcional: em branco = repete pra sempre (ate ser pausado). Preenchida,
+  // a serie para nessa data.
+  agendadoDataHoraFim           DateTime? @map("agendado_data_hora_fim")
+  // "nenhuma" | "diaria" | "semanal" | "mensal"
+  agendadoRepeticao             String?   @map("agendado_repeticao")
+  // Pausa a serie sem mexer no agendamento configurado (retomar so desmarcar)
+  agendadoPausado               Boolean   @default(false) @map("agendado_pausado")
+  // Opcional: fecha a sala nesse horario do dia mesmo se o video ainda nao
+  // acabou (ex: aula das 19h as 21h, mesmo com um video de 3h). Calculado uma
+  // vez, ao salvar, a partir do horario de inicio e do horario de fim
+  // escolhidos no formulario.
+  agendadoDuracaoMaximaSegundos Int?      @map("agendado_duracao_maxima_segundos")
   // --- Links de acesso (ver src/lib/linksAcesso.ts) ---
   // Pede nome e email antes de entrar pela sala principal (desligado por padrao)
-  exigirCadastro              Boolean   @default(false) @map("exigir_cadastro")
+  exigirCadastro                Boolean   @default(false) @map("exigir_cadastro")
   // Habilita o link /{slug}/jit em webinars de outros tipos. No tipo
   // "just_in_time" a sala principal ja e o cadastro just in time.
-  justInTimeAtivo             Boolean   @default(false) @map("just_in_time_ativo")
+  justInTimeAtivo               Boolean   @default(false) @map("just_in_time_ativo")
   // Token secreto do link da sala teste (/{slug}/teste?k=...)
-  tokenSalaTeste              String    @unique @default(uuid()) @map("token_sala_teste")
+  tokenSalaTeste                String    @unique @default(uuid()) @map("token_sala_teste")
   // Replay: so abre depois da sessao. A liberacao pode ter data marcada e o
   // acesso pode expirar numa data fixa e/ou X horas depois de liberado.
-  replayAtivo                 Boolean   @default(false) @map("replay_ativo")
-  replayLiberarEm             DateTime? @map("replay_liberar_em")
-  replayExpirarEm             DateTime? @map("replay_expirar_em")
-  replayDuracaoHoras          Int?      @map("replay_duracao_horas")
-  ativo                       Boolean   @default(true)
-  criadoEm                    DateTime  @default(now()) @map("criado_em")
+  replayAtivo                   Boolean   @default(false) @map("replay_ativo")
+  replayLiberarEm               DateTime? @map("replay_liberar_em")
+  replayExpirarEm               DateTime? @map("replay_expirar_em")
+  replayDuracaoHoras            Int?      @map("replay_duracao_horas")
+  ativo                         Boolean   @default(true)
+  criadoEm                      DateTime  @default(now()) @map("criado_em")
 
   chatMessages ChatMessage[]
   leads        Lead[]
@@ -105,29 +114,29 @@ model ChatMessage {
 }
 
 model Lead {
-  id              String    @id @default(cuid())
-  webinarId       String    @map("webinar_id")
-  webinar         Webinar   @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+  id              String       @id @default(cuid())
+  webinarId       String       @map("webinar_id")
+  webinar         Webinar      @relation(fields: [webinarId], references: [id], onDelete: Cascade)
   nome            String
   // Opcional: quem entra pelo chat com nome e WhatsApp, ou como convidado, nao tem email
   email           String?
   telefone        String?
   // Identifica o participante nas paginas publicas (cookie ou ?a= na URL)
-  tokenAcesso     String    @unique @default(uuid()) @map("token_acesso")
+  tokenAcesso     String       @unique @default(uuid()) @map("token_acesso")
   // Link do primeiro acesso: chaves de ORIGENS_LEAD em src/lib/linksAcesso.ts
-  origem          String    @default("principal")
-  utmSource       String?   @map("utm_source")
-  utmMedium       String?   @map("utm_medium")
-  utmCampaign     String?   @map("utm_campaign")
-  utmContent      String?   @map("utm_content")
-  utmTerm         String?   @map("utm_term")
+  origem          String       @default("principal")
+  utmSource       String?      @map("utm_source")
+  utmMedium       String?      @map("utm_medium")
+  utmCampaign     String?      @map("utm_campaign")
+  utmContent      String?      @map("utm_content")
+  utmTerm         String?      @map("utm_term")
   // Sessao do participante: no just in time, cadastro + delay; nos demais
   // tipos, a primeira sessao em que entrou. Referencia pra liberar o replay.
-  sessaoEscolhida DateTime? @map("sessao_escolhida")
+  sessaoEscolhida DateTime?    @map("sessao_escolhida")
   // Slug do CanalOferta pelo qual entrou (?c= na URL), first-touch - igual
   // origem/UTMs, fica gravado no primeiro acesso e nao muda depois.
-  canalOferta     String?   @map("canal_oferta")
-  entrouEm        DateTime  @default(now()) @map("entrou_em")
+  canalOferta     String?      @map("canal_oferta")
+  entrouEm        DateTime     @default(now()) @map("entrou_em")
   comentarios     Comentario[]
   presencas       Presenca[]
 

@@ -2,7 +2,12 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { WebinarForm } from "@/components/admin/WebinarForm";
 import type { WebinarStepKey } from "@/components/admin/WebinarStepper";
-import { toDatetimeLocalValue, type RepeticaoAgendado, type TipoAgendamento } from "@/lib/scheduling";
+import {
+  horarioFimAgendado,
+  toDatetimeLocalBrasilia,
+  type RepeticaoAgendado,
+  type TipoAgendamento,
+} from "@/lib/scheduling";
 import { updateWebinar } from "../../actions";
 
 export const dynamic = "force-dynamic";
@@ -46,9 +51,13 @@ export default async function EditarWebinarPage({ params, searchParams }: Editar
           horariosFixos: Array.isArray(webinar.horariosFixos) ? (webinar.horariosFixos as string[]) : [],
           intervaloRecorrenciaMinutos: webinar.intervaloRecorrenciaMinutos,
           delayJustInTimeMinutos: webinar.delayJustInTimeMinutos,
-          agendadoDataHoraInicio: toDatetimeLocalValue(webinar.agendadoDataHoraInicio),
-          agendadoDataHoraFim: toDatetimeLocalValue(webinar.agendadoDataHoraFim),
+          agendadoDataHoraInicio: toDatetimeLocalBrasilia(webinar.agendadoDataHoraInicio),
+          agendadoDataHoraFim: toDatetimeLocalBrasilia(webinar.agendadoDataHoraFim),
           agendadoRepeticao: (webinar.agendadoRepeticao as RepeticaoAgendado) ?? "nenhuma",
+          agendadoPausado: webinar.agendadoPausado,
+          agendadoHorarioFim: webinar.agendadoDataHoraInicio
+            ? horarioFimAgendado(webinar.agendadoDataHoraInicio, webinar.agendadoDuracaoMaximaSegundos)
+            : "",
           ofertaNome: webinar.ofertaNome ?? "",
           ofertaTitulo: webinar.ofertaTitulo ?? "",
           ofertaImagemUrl: webinar.ofertaImagemUrl ?? "",
