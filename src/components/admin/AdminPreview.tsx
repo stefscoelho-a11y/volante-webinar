@@ -33,6 +33,10 @@ type AdminPreviewProps = {
   chatMessages: ChatMessageData[];
   // Abre ja no ponto do CTA, sem precisar clicar em "No CTA" depois de carregar.
   abrirNaOferta?: boolean;
+  canalSlug?: string | null;
+  agenteIaAtivo?: boolean;
+  agenteNome?: string | null;
+  agenteFotoUrl?: string | null;
 };
 
 function computeSessionStartIso(elapsedSeconds: number): string {
@@ -67,6 +71,10 @@ export function AdminPreview({
   fonteSala,
   chatMessages,
   abrirNaOferta = false,
+  canalSlug = null,
+  agenteIaAtivo = false,
+  agenteNome = null,
+  agenteFotoUrl = null,
 }: AdminPreviewProps) {
   const elapsedInicial = abrirNaOferta ? Math.min(pitchTimestampSeconds, videoDurationSeconds - 1) : 0;
   const [manualElapsed, setManualElapsed] = useState(elapsedInicial);
@@ -160,6 +168,10 @@ export function AdminPreview({
         corTexto={corTexto}
         fonteSala={fonteSala}
         chatMessages={chatMessages}
+        canalSlug={canalSlug}
+        agenteIaAtivo={agenteIaAtivo}
+        agenteNome={agenteNome}
+        agenteFotoUrl={agenteFotoUrl}
       />
     </div>
   );

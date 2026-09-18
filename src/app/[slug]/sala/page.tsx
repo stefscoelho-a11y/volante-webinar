@@ -167,6 +167,10 @@ export default async function SalaPage({ params, searchParams }: PageProps) {
         texto: message.texto,
         tipo: message.tipo,
       }))}
+      canalSlug={canalEncontrado?.slug ?? null}
+      agenteIaAtivo={webinar.agenteIaAtivo}
+      agenteNome={webinar.agenteNome}
+      agenteFotoUrl={webinar.agenteFotoUrl}
     />
   );
 }

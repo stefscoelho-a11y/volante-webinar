@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
 import {
+  Bot,
   CalendarClock,
   Eye,
   Flag,
@@ -23,6 +24,7 @@ export type WebinarStepKey =
   | "integracoes"
   | "links"
   | "chat"
+  | "agente"
   | "preview";
 
 type IconComponent = (props: { className?: string }) => ReactNode;
@@ -69,13 +71,14 @@ function buildStepsAsLinks(webinarId: string): StepDef[] {
     },
     { key: "links", label: "Links", icon: IconLinks, href: `/admin/webinars/${webinarId}/links` },
     { key: "chat", label: "Chat Fake", icon: IconChat, href: `/admin/webinars/${webinarId}/chat` },
+    { key: "agente", label: "Agente IA", icon: IconAgente, href: `/admin/webinars/${webinarId}/agente` },
     { key: "preview", label: "Preview", icon: IconPreview, href: `/admin/webinars/${webinarId}/preview` },
   ];
 }
 
 // Etapas que sao ferramentas (paginas proprias) e nao parte do formulario:
 // ficam depois de um separador.
-const FERRAMENTAS = new Set<WebinarStepKey>(["links", "chat", "preview"]);
+const FERRAMENTAS = new Set<WebinarStepKey>(["links", "chat", "agente", "preview"]);
 
 export function WebinarStepper(props: WebinarStepperProps) {
   const { activeKey } = props;
@@ -129,4 +132,5 @@ export const IconAudiencia = Eye;
 export const IconIntegracoes = Plug;
 export const IconLinks = Link2;
 export const IconChat = MessageSquare;
+export const IconAgente = Bot;
 export const IconPreview = PlayCircle;

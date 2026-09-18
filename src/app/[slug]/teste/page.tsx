@@ -83,6 +83,10 @@ export default async function SalaTestePage({ params, searchParams }: SalaTesteP
           texto: message.texto,
           tipo: message.tipo,
         }))}
+        canalSlug={canalEncontrado?.slug ?? null}
+        agenteIaAtivo={webinar.agenteIaAtivo}
+        agenteNome={webinar.agenteNome}
+        agenteFotoUrl={webinar.agenteFotoUrl}
       />
     </div>
   );

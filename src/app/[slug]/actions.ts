@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { lerDadosParticipante } from "@/lib/linksAcesso";
-import { lerCanalDaQuery } from "@/lib/canaisOferta";
+import { encontrarCanal, lerCanalDaQuery, resolverOferta } from "@/lib/canaisOferta";
 import {
   getLeadAtual,
   participanteDoChat,
@@ -18,6 +18,13 @@ import {
   type ComentarioAoVivo,
   type ParticipanteChat,
 } from "@/lib/chatAoVivo";
+import {
+  ErroAgenteSuporte,
+  gerarAbordagemPitch,
+  responderVisitante,
+  MAX_TEXTO_MENSAGEM,
+  type MensagemAgente,
+} from "@/lib/agenteSuporte";
 
 // Evita flood: no maximo um comentario a cada 2 segundos por participante
 const INTERVALO_MINIMO_COMENTARIO_MS = 2000;
@@ -115,4 +122,82 @@ export async function enviarComentario(
   });
 
   return { ok: true, comentario: { ...comentario, tipo: "participante", criadoEm: comentario.criadoEm.toISOString() } };
+}
+
+export type ResultadoAgenteSuporte = { ok: true; resposta: string } | { ok: false; erro: string };
+
+function sanitizarHistorico(historico: MensagemAgente[]): MensagemAgente[] {
+  return historico
+    .slice(-20)
+    .map((mensagem) => ({
+      autor: mensagem.autor === "agente" ? ("agente" as const) : ("visitante" as const),
+      texto: String(mensagem.texto ?? "").trim().slice(0, MAX_TEXTO_MENSAGEM),
+    }))
+    .filter((mensagem) => mensagem.texto.length > 0);
+}
+
+/**
+ * Busca o webinar de novo pelo id (nunca confia em titulo/oferta vindos do
+ * cliente) e resolve a oferta pelo canal, se houver - a config do agente em
+ * si (nome, tom, roteiro da aula) nao varia por canal.
+ */
+async function carregarContextoAgente(webinarId: string, canalSlug: string | null) {
+  const webinar = await prisma.webinar.findUnique({
+    where: { id: webinarId },
+    include: { canais: true },
+  });
+  if (!webinar || !webinar.ativo || !webinar.agenteIaAtivo) return null;
+
+  const canal = encontrarCanal(webinar.canais, canalSlug, null);
+  return {
+    tituloWebinar: webinar.titulo,
+    oferta: resolverOferta(webinar, canal),
+    config: {
+      nome: webinar.agenteNome,
+      informacoesProduto: webinar.agenteInformacoesProduto,
+      tom: webinar.agenteTom,
+      roteiroAula: webinar.agenteRoteiroAula,
+    },
+  };
+}
+
+/** Chat flutuante de suporte: resposta a uma pergunta do visitante, com o historico da conversa. */
+export async function perguntarAoAgenteSuporte(
+  webinarId: string,
+  canalSlug: string | null,
+  jaPassouPitch: boolean,
+  historico: MensagemAgente[],
+): Promise<ResultadoAgenteSuporte> {
+  const contexto = await carregarContextoAgente(webinarId, canalSlug);
+  if (!contexto) return { ok: false, erro: "O suporte por IA não está disponível para este webinário." };
+
+  try {
+    const resposta = await responderVisitante(
+      contexto.tituloWebinar,
+      contexto.oferta,
+      contexto.config,
+      jaPassouPitch,
+      sanitizarHistorico(historico),
+    );
+    return { ok: true, resposta };
+  } catch (erro) {
+    if (erro instanceof ErroAgenteSuporte) return { ok: false, erro: erro.message };
+    console.error("Erro inesperado no agente de suporte", erro);
+    return { ok: false, erro: "Não foi possível falar com o suporte agora. Tente de novo em instantes." };
+  }
+}
+
+/** Mensagem proativa unica quando o video chega no pitch - "aborda" quem esta assistindo. */
+export async function pedirAbordagemPitch(webinarId: string, canalSlug: string | null): Promise<ResultadoAgenteSuporte> {
+  const contexto = await carregarContextoAgente(webinarId, canalSlug);
+  if (!contexto) return { ok: false, erro: "O suporte por IA não está disponível para este webinário." };
+
+  try {
+    const resposta = await gerarAbordagemPitch(contexto.tituloWebinar, contexto.oferta, contexto.config);
+    return { ok: true, resposta };
+  } catch (erro) {
+    if (erro instanceof ErroAgenteSuporte) return { ok: false, erro: erro.message };
+    console.error("Erro inesperado ao gerar abordagem do pitch", erro);
+    return { ok: false, erro: "Não foi possível iniciar o suporte agora." };
+  }
 }

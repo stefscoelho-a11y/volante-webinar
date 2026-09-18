@@ -9,6 +9,7 @@ import { ChatPanel, type ChatMessageData } from "./ChatPanel";
 import type { ChatAoVivoConfig } from "@/lib/chatAoVivo";
 import { OfertaBlock } from "./OfertaBlock";
 import { MetaPixel } from "./MetaPixel";
+import { SuporteFlutuante } from "./SuporteFlutuante";
 import {
   getContrastColor,
   parseFonteSala,
@@ -50,6 +51,12 @@ type SalaRoomProps = {
   // Comentarios reais e presenca (painel Ao vivo). Sem isso (preview do
   // admin, sala teste) o chat fica so com o roteiro.
   chatAoVivo?: ChatAoVivoConfig;
+  // Slug do canal resolvido (?c=) - so pra buscar a oferta certa no agente
+  // de suporte; a config do agente em si nao varia por canal.
+  canalSlug?: string | null;
+  agenteIaAtivo?: boolean;
+  agenteNome?: string | null;
+  agenteFotoUrl?: string | null;
 };
 
 export function SalaRoom({
@@ -83,6 +90,10 @@ export function SalaRoom({
   fonteSala,
   isReplay = false,
   chatAoVivo,
+  canalSlug = null,
+  agenteIaAtivo = false,
+  agenteNome = null,
+  agenteFotoUrl = null,
 }: SalaRoomProps) {
   const [sessionStart] = useState(() => new Date(sessionStartIso));
   // Relogio da AGENDA: sempre baseado no relogio real, independente do
@@ -228,6 +239,17 @@ export function SalaRoom({
             <span className="flex items-center gap-1"><IconShield /> Site seguro</span>
             <span className="flex items-center gap-1"><IconLock /> Privacidade protegida</span>
           </footer>
+        )}
+
+        {agenteIaAtivo && (
+          <SuporteFlutuante
+            webinarId={webinarId}
+            canalSlug={canalSlug}
+            nome={agenteNome}
+            fotoUrl={agenteFotoUrl}
+            pitchTimestampSeconds={pitchTimestampSeconds}
+            elapsedSeconds={elapsedParaConteudo}
+          />
         )}
       </div>
     </>

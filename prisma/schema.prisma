@@ -70,6 +70,18 @@ model Webinar {
   // vez, ao salvar, a partir do horario de inicio e do horario de fim
   // escolhidos no formulario.
   agendadoDuracaoMaximaSegundos Int?      @map("agendado_duracao_maxima_segundos")
+  // --- Agente de suporte com IA (chat flutuante) - ver src/lib/agenteSuporte.ts ---
+  agenteIaAtivo                 Boolean   @default(false) @map("agente_ia_ativo")
+  agenteNome                    String?   @map("agente_nome")
+  agenteFotoUrl                 String?   @map("agente_foto_url")
+  // Contexto extra que so o agente ve (nao aparece na sala): diferenciais,
+  // bonus, garantia, objecoes comuns e como responder, etc.
+  agenteInformacoesProduto      String?   @map("agente_informacoes_produto")
+  // Como o agente deve se comportar: formal/informal, calmo/direto, etc.
+  agenteTom                     String?   @map("agente_tom")
+  // Roteiro/resumo do que acontece na aula, pra o agente responder duvidas
+  // sobre o conteudo com seguranca.
+  agenteRoteiroAula             String?   @map("agente_roteiro_aula")
   // --- Links de acesso (ver src/lib/linksAcesso.ts) ---
   // Pede nome e email antes de entrar pela sala principal (desligado por padrao)
   exigirCadastro                Boolean   @default(false) @map("exigir_cadastro")
