@@ -105,6 +105,7 @@ model Webinar {
   comentarios  Comentario[]
   presencas    Presenca[]
   canais       CanalOferta[]
+  eventosFunil EventoFunil[]
 
   @@map("webinars")
 }
@@ -151,6 +152,7 @@ model Lead {
   entrouEm        DateTime     @default(now()) @map("entrou_em")
   comentarios     Comentario[]
   presencas       Presenca[]
+  eventosFunil    EventoFunil[]
 
   @@index([webinarId, email])
   @@index([webinarId, telefone])
@@ -219,6 +221,31 @@ model Presenca {
   @@unique([webinarId, visitanteId])
   @@index([webinarId, ultimoSinal])
   @@map("presencas")
+}
+
+// Etapa do funil que um visitante anonimo passou pela primeira vez: entrada
+// na sala, chegada no pitch (video cruzou pitchTimestampSeconds) ou clique no
+// CTA. Uma linha por (visitante, tipo, sessao) - visitanteId e a mesma chave
+// anonima usada pela presenca/chat (localStorage), entao cobre quem nunca
+// virou Lead (a maioria dos webinarios nao exige cadastro). leadId e
+// preenchido so quando ja existe um lead identificado no momento do evento -
+// nao ha cruzamento retroativo.
+model EventoFunil {
+  id          String   @id @default(cuid())
+  webinarId   String   @map("webinar_id")
+  webinar     Webinar  @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+  visitanteId String   @map("visitante_id")
+  leadId      String?  @map("lead_id")
+  lead        Lead?    @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  // "entrou_sala" | "chegou_pitch" | "clicou_cta"
+  tipo        String
+  // Inicio da sessao ao vivo (ISO) ou "replay" - mesma chave do chat/presenca
+  sessao      String
+  criadoEm    DateTime @default(now()) @map("criado_em")
+
+  @@unique([webinarId, visitanteId, tipo, sessao])
+  @@index([webinarId, tipo, criadoEm])
+  @@map("eventos_funil")
 }
 
 // Canal de venda de um webinar (ex: "Live trafego", "SMS organico"): cada um

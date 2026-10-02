@@ -220,6 +220,8 @@ export function SalaRoom({
               precoOferta={precoOferta}
               precoParcelado={precoParcelado}
               ctaCountdownMinutos={ctaCountdownMinutos}
+              webinarId={webinarId}
+              sessao={chatAoVivo?.sessao ?? null}
             />
           </section>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { formatCountdown } from "@/lib/scheduling";
+import { obterVisitanteId } from "@/lib/visitante";
 
 type OfertaBlockProps = {
   ctaTexto: string;
@@ -16,6 +17,11 @@ type OfertaBlockProps = {
   precoOferta: number | null;
   precoParcelado: string | null;
   ctaCountdownMinutos: number | null;
+  // Id do webinario e da sessao ao vivo (ISO) ou "replay" - so rastreia o
+  // clique no funil quando os dois vem preenchidos (preview/sala teste do
+  // admin nao passam, de proposito, pra nao poluir os numeros reais).
+  webinarId?: string;
+  sessao?: string | null;
 };
 
 function formatBRL(value: number): string {
@@ -41,6 +47,8 @@ export function OfertaBlock({
   precoOferta,
   precoParcelado,
   ctaCountdownMinutos,
+  webinarId,
+  sessao,
 }: OfertaBlockProps) {
   const apareceu = elapsedSeconds >= pitchTimestampSeconds;
   const jaSumiu = ctaDesaparecerSegundos != null && elapsedSeconds >= ctaDesaparecerSegundos;
@@ -52,6 +60,15 @@ export function OfertaBlock({
 
   function handleClick() {
     window.fbq?.("track", "Lead");
+    if (webinarId && sessao) {
+      const visitanteId = obterVisitanteId();
+      fetch("/api/funil/clique", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ webinarId, visitanteId, sessao }),
+        keepalive: true,
+      }).catch(() => {});
+    }
   }
 
   return (

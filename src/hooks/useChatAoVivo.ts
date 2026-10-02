@@ -9,23 +9,11 @@ import {
   type ComentarioAoVivo,
   type ParticipanteChat,
 } from "@/lib/chatAoVivo";
+import { obterVisitanteId } from "@/lib/visitante";
 
-const CHAVE_VISITANTE = "vw_visitante";
 // Margem no cursor: um comentario gravado durante a consulta nao se perde
 // (os repetidos sao descartados pelo id)
 const MARGEM_CURSOR_MS = 10_000;
-
-function obterVisitanteId(): string {
-  try {
-    const salvo = localStorage.getItem(CHAVE_VISITANTE);
-    if (salvo) return salvo;
-    const novo = crypto.randomUUID();
-    localStorage.setItem(CHAVE_VISITANTE, novo);
-    return novo;
-  } catch {
-    return crypto.randomUUID();
-  }
-}
 
 /**
  * Chat real da sala: sinal de presenca, comentarios do participante e

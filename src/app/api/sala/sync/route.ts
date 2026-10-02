@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getLeadAtual, participanteDoChat } from "@/lib/leads";
 import { ONLINE_ATE_SEGUNDOS, type ComentarioAoVivo } from "@/lib/chatAoVivo";
+import { registrarEventoFunil } from "@/lib/funil";
 
 export const dynamic = "force-dynamic";
 
@@ -46,23 +47,34 @@ export async function POST(request: NextRequest) {
   const videoSegundos = Math.max(0, Math.floor(Number(corpo?.videoSegundos) || 0));
   const desde = typeof corpo?.desde === "string" && !Number.isNaN(Date.parse(corpo.desde)) ? new Date(corpo.desde) : null;
 
-  const lead = await getLeadAtual(webinarId);
+  const [lead, webinar] = await Promise.all([
+    getLeadAtual(webinarId),
+    prisma.webinar.findUnique({ where: { id: webinarId }, select: { pitchTimestampSeconds: true } }),
+  ]);
+  if (!webinar) {
+    return NextResponse.json({ erro: "Webinário não encontrado." }, { status: 404 });
+  }
+
   const agora = new Date();
   const limiteReentrada = new Date(agora.getTime() - REENTRADA_MS);
 
-  try {
-    // Upsert numa consulta so: esse endpoint roda o tempo todo pra cada aba aberta
-    await prisma.$executeRaw`
-      INSERT INTO "presencas" ("id", "webinar_id", "visitante_id", "lead_id", "pagina", "video_segundos", "entrou_em", "ultimo_sinal")
-      VALUES (gen_random_uuid()::text, ${webinarId}, ${visitanteId}, ${lead?.id ?? null}, ${pagina}, ${videoSegundos}, ${agora}, ${agora})
-      ON CONFLICT ("webinar_id", "visitante_id") DO UPDATE SET
-        "lead_id" = COALESCE(EXCLUDED."lead_id", "presencas"."lead_id"),
-        "pagina" = EXCLUDED."pagina",
-        "video_segundos" = EXCLUDED."video_segundos",
-        "entrou_em" = CASE WHEN "presencas"."ultimo_sinal" < ${limiteReentrada} THEN EXCLUDED."entrou_em" ELSE "presencas"."entrou_em" END,
-        "ultimo_sinal" = EXCLUDED."ultimo_sinal"`;
-  } catch {
-    return NextResponse.json({ erro: "Webinário não encontrado." }, { status: 404 });
+  // Upsert numa consulta so: esse endpoint roda o tempo todo pra cada aba aberta
+  await prisma.$executeRaw`
+    INSERT INTO "presencas" ("id", "webinar_id", "visitante_id", "lead_id", "pagina", "video_segundos", "entrou_em", "ultimo_sinal")
+    VALUES (gen_random_uuid()::text, ${webinarId}, ${visitanteId}, ${lead?.id ?? null}, ${pagina}, ${videoSegundos}, ${agora}, ${agora})
+    ON CONFLICT ("webinar_id", "visitante_id") DO UPDATE SET
+      "lead_id" = COALESCE(EXCLUDED."lead_id", "presencas"."lead_id"),
+      "pagina" = EXCLUDED."pagina",
+      "video_segundos" = EXCLUDED."video_segundos",
+      "entrou_em" = CASE WHEN "presencas"."ultimo_sinal" < ${limiteReentrada} THEN EXCLUDED."entrou_em" ELSE "presencas"."entrou_em" END,
+      "ultimo_sinal" = EXCLUDED."ultimo_sinal"`;
+
+  // Funil: primeira vez que esse visitante entra nessa sessao, e primeira vez
+  // que o video dele cruza o pitch - repete a cada ping, mas so grava uma vez
+  // (skipDuplicates) por visitante+sessao.
+  await registrarEventoFunil({ webinarId, visitanteId, tipo: "entrou_sala", sessao, leadId: lead?.id });
+  if (videoSegundos >= webinar.pitchTimestampSeconds) {
+    await registrarEventoFunil({ webinarId, visitanteId, tipo: "chegou_pitch", sessao, leadId: lead?.id });
   }
 
   const comentarios: ComentarioAoVivo[] = lead
