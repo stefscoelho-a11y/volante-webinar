@@ -243,7 +243,12 @@ model EventoFunil {
   sessao      String
   criadoEm    DateTime @default(now()) @map("criado_em")
 
+  // Uma linha por navegador E uma por pessoa identificada (lead) por etapa e
+  // sessao: quem entra pelo celular e depois pelo computador nao conta duas
+  // vezes. leadId nulo nao conflita (cada NULL e distinto no Postgres), entao
+  // visitantes anonimos so se deduplicam pelo visitanteId.
   @@unique([webinarId, visitanteId, tipo, sessao])
+  @@unique([webinarId, leadId, tipo, sessao])
   @@index([webinarId, tipo, criadoEm])
   @@map("eventos_funil")
 }
