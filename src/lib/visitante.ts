@@ -47,9 +47,30 @@ function gravar(id: string): void {
   }
 }
 
+// crypto.randomUUID nao existe em navegadores antigos (iOS < 15.4, WebViews
+// antigos de Android e de apps): chama-la sem checar derrubava a sala inteira
+// no momento em que ela ia ao vivo.
+function gerarId(): string {
+  try {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  } catch {
+    // cai no proximo metodo
+  }
+  const bytes = new Uint8Array(16);
+  try {
+    crypto.getRandomValues(bytes);
+  } catch {
+    for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+  }
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 export function obterVisitanteId(): string {
   if (idEmMemoria) return idEmMemoria;
-  const id = lerLocalStorage() ?? lerCookie() ?? crypto.randomUUID();
+  const id = lerLocalStorage() ?? lerCookie() ?? gerarId();
   gravar(id);
   idEmMemoria = id;
   return id;
