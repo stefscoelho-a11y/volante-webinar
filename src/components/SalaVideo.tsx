@@ -26,6 +26,8 @@ const DRIFT_TOLERANCE_SECONDS = 2;
 // pai via onVideoTimeChange (usado quando a sincronizacao esta desligada,
 // pra chat/CTA seguirem o tempo do video em vez do relogio real).
 const VIDEO_TIME_POLL_MS = 500;
+// Sem mexer o mouse/tocar nesse tempo, os controles do video somem
+const TEMPO_CONTROLES_MS = 3000;
 
 // A legenda automatica do YouTube liga sozinha pra quem marcou "sempre mostrar
 // legendas" na conta - cc_load_policy:0 nao impede. Descarregar o modulo de
@@ -106,6 +108,10 @@ export function SalaVideo({
   // iPhone nao deixa colocar um elemento em tela cheia: ai o player ocupa a tela via CSS
   const [telaCheiaSimulada, setTelaCheiaSimulada] = useState(false);
   const emTelaCheia = telaCheiaNativa || telaCheiaSimulada;
+  // Controles (som, volume, tela cheia) ficam escondidos pra nao cobrir o
+  // video: aparecem ao passar o mouse ou tocar/clicar, e somem sozinhos.
+  const [controlesVisiveis, setControlesVisiveis] = useState(false);
+  const esconderControlesRef = useRef<number | undefined>(undefined);
   const playerRef = useRef<YouTubePlayer | null>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const onVideoTimeChangeRef = useRef(onVideoTimeChange);
@@ -113,6 +119,19 @@ export function SalaVideo({
   useEffect(() => {
     onVideoTimeChangeRef.current = onVideoTimeChange;
   }, [onVideoTimeChange]);
+
+  useEffect(() => () => window.clearTimeout(esconderControlesRef.current), []);
+
+  function mostrarControles() {
+    setControlesVisiveis(true);
+    window.clearTimeout(esconderControlesRef.current);
+    esconderControlesRef.current = window.setTimeout(() => setControlesVisiveis(false), TEMPO_CONTROLES_MS);
+  }
+
+  function esconderControles() {
+    window.clearTimeout(esconderControlesRef.current);
+    setControlesVisiveis(false);
+  }
 
   useEffect(() => {
     let destroyed = false;
@@ -287,6 +306,12 @@ export function SalaVideo({
   return (
     <div
       ref={frameRef}
+      onPointerMove={() => mostrarControles()}
+      onPointerDown={() => mostrarControles()}
+      onPointerLeave={(evento) => {
+        // toque dispara "leave" logo ao soltar o dedo: so o mouse esconde na hora
+        if (evento.pointerType === "mouse") esconderControles();
+      }}
       // Sem borda arredondada no celular (video de ponta a ponta) nem em tela cheia
       // "relative" e "fixed" nunca juntos: no CSS gerado "relative" vence e o player
       // ficaria preso na coluna em vez de ocupar a tela
@@ -339,11 +364,20 @@ export function SalaVideo({
       )}
 
       {isYouTube && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/90 via-black/35 to-transparent" />
+        <div
+          className={`pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/90 via-black/35 to-transparent transition-opacity duration-300 ${
+            controlesVisiveis ? "opacity-100" : "opacity-0"
+          }`}
+        />
       )}
 
       <div
-        className={`pointer-events-auto absolute z-20 flex items-center ${
+        // Escondido: nao recebe clique (o primeiro toque so revela os controles,
+        // em vez de silenciar sem querer). Teclado (Tab) tambem revela.
+        onFocus={() => mostrarControles()}
+        className={`absolute z-20 flex items-center transition-opacity duration-300 focus-within:pointer-events-auto focus-within:opacity-100 ${
+          controlesVisiveis ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
+        } ${
           isYouTube
             ? "inset-x-3 bottom-2 gap-3 text-white sm:inset-x-4 sm:bottom-3"
             : "bottom-3 right-3 gap-2 rounded-full bg-black/65 px-3 py-2 text-white backdrop-blur-sm"
