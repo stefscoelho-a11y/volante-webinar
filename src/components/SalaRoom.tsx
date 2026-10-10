@@ -225,7 +225,7 @@ export function SalaRoom({
             />
           </section>
 
-          <div className={`px-3 sm:px-0 lg:min-h-0 ${tema === "hotwebinar" ? "min-h-[52rem]" : "min-h-[24rem]"}`}>
+          <div className="h-[34rem] max-h-[80vh] px-3 sm:px-0 lg:relative lg:h-auto lg:max-h-none lg:min-h-[30rem]">
             <ChatPanel
               messages={chatMessages}
               elapsedSeconds={elapsedParaConteudo}

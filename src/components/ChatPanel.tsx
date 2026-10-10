@@ -10,6 +10,9 @@ import { useChatAoVivo, type ChatAoVivo } from "@/hooks/useChatAoVivo";
 // do participante; a folga evita que ela fique escondida esperando o relogio.
 const FOLGA_COMENTARIO_REAL_SEGUNDOS = 15;
 
+// Ate essa distancia do fim da lista conta como "acompanhando o chat ao vivo"
+const DISTANCIA_FIM_PX = 48;
+
 export type ChatMessageData = {
   id: string;
   timestampSegundos: number;
@@ -64,18 +67,60 @@ export function ChatPanel({ messages, elapsedSeconds, tema, viewerCount, chatAoV
     .sort((a, b) => a.timestampSegundos - b.timestampSegundos);
   const mensagensSuporte = visibleMessages.filter((message) => message.tipo === "suporte");
 
+  // Igual ao chat do YouTube: acompanha as mensagens novas enquanto a pessoa
+  // esta no fim da lista; se ela rolou pra cima pra reler, para de puxar e
+  // mostra um botao "novas mensagens" em vez de arrancar a leitura dela.
+  const noFimRef = useRef(true);
+  const totalAnteriorRef = useRef(0);
+  const [novasAbaixo, setNovasAbaixo] = useState(0);
+  const totalVisiveis = visibleMessages.length;
+
+  function aoRolar() {
+    const lista = scrollRef.current;
+    if (!lista) return;
+    const noFim = lista.scrollHeight - lista.scrollTop - lista.clientHeight < DISTANCIA_FIM_PX;
+    noFimRef.current = noFim;
+    if (noFim) setNovasAbaixo(0);
+  }
+
+  function irParaOFim(suave: boolean) {
+    const lista = scrollRef.current;
+    if (!lista) return;
+    noFimRef.current = true;
+    setNovasAbaixo(0);
+    lista.scrollTo({ top: lista.scrollHeight, behavior: suave ? "smooth" : "auto" });
+  }
+
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [visibleMessages.length]);
+    const lista = scrollRef.current;
+    const novas = totalVisiveis - totalAnteriorRef.current;
+    const primeiraCarga = totalAnteriorRef.current === 0;
+    totalAnteriorRef.current = totalVisiveis;
+    if (!lista) return;
+    if (novas < 0) {
+      // preview do admin voltou no tempo: recomeca do fim
+      irParaOFim(false);
+    } else if (noFimRef.current) {
+      irParaOFim(!primeiraCarga);
+    } else if (novas > 0) {
+      setNovasAbaixo((atual) => atual + novas);
+    }
+  }, [totalVisiveis]);
+
+  // Voltando da aba Suporte a lista e remontada: comeca de novo pelo fim
+  useEffect(() => {
+    if (activeTab === "chat") irParaOFim(false);
+  }, [activeTab]);
 
   const isYouTube = tema === "youtube";
 
   return (
     <aside
       aria-label="Chat do webinar"
-      className={`room-surface flex h-full flex-col overflow-hidden border bg-white lg:min-h-0 ${
-        isYouTube ? "min-h-[24rem]" : "min-h-[52rem]"
-      } ${
+      // Altura propria (nao depende do conteudo): no celular a caixa tem altura
+      // fixa e rola por dentro; no desktop ela fica "solta" da grade
+      // (absolute) pra nao esticar a linha do video quando ha muitas mensagens.
+      className={`room-surface flex h-full flex-col overflow-hidden border bg-white lg:absolute lg:inset-x-0 lg:top-0 lg:bottom-0 lg:h-auto lg:max-h-[36rem] ${
         isYouTube ? "rounded-xl" : "rounded-lg shadow-[0_2px_10px_rgba(15,23,42,0.06)]"
       }`}
     >
@@ -125,7 +170,12 @@ export function ChatPanel({ messages, elapsedSeconds, tema, viewerCount, chatAoV
           </div>
         </div>
       ) : (
-      <div ref={scrollRef} className={`room-scrollbar flex-1 overflow-y-auto ${isYouTube ? "space-y-3 px-4 py-3" : "space-y-3 px-3 py-4"}`}>
+      <div className="relative flex min-h-0 flex-1 flex-col">
+      <div
+        ref={scrollRef}
+        onScroll={aoRolar}
+        className={`room-scrollbar min-h-0 flex-1 overflow-y-auto ${isYouTube ? "space-y-3 px-4 py-3" : "space-y-3 px-3 py-4"}`}
+      >
         {visibleMessages.length === 0 && (
           <p className="room-muted py-8 text-center text-xs">O chat vai começar em instantes...</p>
         )}
@@ -155,6 +205,16 @@ export function ChatPanel({ messages, elapsedSeconds, tema, viewerCount, chatAoV
             </div>
           ),
         )}
+      </div>
+      {novasAbaixo > 0 && (
+        <button
+          type="button"
+          onClick={() => irParaOFim(true)}
+          className="room-accent-bg absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-xs font-semibold shadow-lg transition hover:opacity-90"
+        >
+          ↓ {novasAbaixo > 1 ? `${novasAbaixo} novas mensagens` : "Nova mensagem"}
+        </button>
+      )}
       </div>
       )}
 
